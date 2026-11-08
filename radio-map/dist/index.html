@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Radio positions, last-heard times and track history on OpenStreetMap.">
+  <title>TAIT · Radio Map</title>
+  <link rel="stylesheet" href="leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="radio.css">
+  <script defer src="leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="TAIT Radio Map home"><span class="brand-icon">⌖</span><span><span id="map-name">TAIT</span><b>Radio Map</b></span></a>
+    <div class="top-right"><span id="connection" class="connection"><i></i><span>Connecting</span></span><button id="radio-options" class="open-button">⚙ Radio connection</button><button id="open-files" class="open-button">＋ Open KML</button><input id="files" type="file" accept=".kml,application/vnd.google-earth.kml+xml" multiple hidden></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Radio legend">
+      <div class="sidebar-title"><div><p class="eyebrow">FIELD OVERVIEW</p><h1>Radio positions</h1></div><span id="radio-count" class="count">0</span></div>
+      <button id="hide-legend" class="panel-close legend-close" aria-label="Hide radio legend" title="Hide radio legend">×</button>
+      <p class="subtitle">Latest reports. One shared picture.</p>
+      <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a radio ID or name…" aria-label="Find a radio ID or name"></div>
+      <div class="list-heading"><span>RADIO / LAST HEARD</span><button id="toggle-all">Hide all</button></div>
+      <div id="radio-list" class="radio-list"></div>
+      <div id="empty" class="empty"><span>⌖</span><h2>Ready for your radios</h2><p>Open a KML file to see positions and tracks, or start the local viewer for automatic updates.</p><button id="empty-open">Open KML files</button></div>
+      <footer class="sidebar-footer"><span class="source-icon">↻</span><div><strong id="source-title">KML position data</strong><p id="source-detail">Waiting for a data source</p></div><button id="refresh" title="Refresh source" aria-label="Refresh source">↻</button></footer>
+    </aside>
+    <main class="map-panel" aria-label="Radio position map">
+      <div id="map"></div>
+      <div class="map-style-control"><label for="map-style">Map style</label><select id="map-style" aria-label="Map style"></select></div>
+      <div class="coordinate-control map-style-control"><label for="coordinate-format">Coordinates</label><select id="coordinate-format"><option value="latlon">Latitude / longitude</option><option value="mgrs3">MGRS · 6 digits (100 m)</option><option value="mgrs4">MGRS · 8 digits (10 m)</option><option value="mgrs5">MGRS · 10 digits (1 m)</option></select><p class="field-help">MGRS uses WGS84. Check your paper map datum. Grid precision does not indicate GPS accuracy.</p></div>
+      
+<details class="panel-menu layout-menu"><summary>☷ Panels</summary><div class="panel-menu-body"><details class="maps-menu"><summary>Maps</summary><div id="maps-controls" class="panel-menu-body">
+<section><label for="map-grid">Grid lines</label><select id="map-grid"><option value="off">Off</option><option value="latlon">Latitude / longitude</option><option value="utm">WGS84 UTM / MGRS grid</option></select><p id="grid-description" class="field-help"></p></section>
+<section><h3>Offline PDF maps</h3><p class="field-help">Import an ISO geospatial PDF with embedded coordinates (up to 50 MB). Stored on the radio PC and shared with LAN viewers. Pair to import or delete maps.</p>
+<label for="pdf-page">PDF page</label><input id="pdf-page" type="number" min="1" value="1">
+<label for="pdf-viewport">Map frame / viewport</label><input id="pdf-viewport" type="number" min="1" value="1">
+<button id="pdf-import" type="button">Import geospatial PDF</button><input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden>
+<label for="pdf-map">PDF map</label><select id="pdf-map"><option value="">None</option></select>
+<label><input id="pdf-only" type="checkbox"> PDF only (no online tiles)</label>
+<label for="pdf-opacity">PDF opacity</label><input id="pdf-opacity" type="range" min="10" max="100" value="100">
+<div class="pdf-actions"><button id="pdf-fit" type="button">Fit PDF map</button><button id="pdf-remove" type="button">Delete PDF map</button></div>
+<p id="pdf-status" class="field-help" role="status"></p></section></div></details><section id="cache-controls"><strong>Map tile cache</strong><p id="cache-status">Pair with the companion to manage its shared cache.</p><label for="cache-limit">Maximum storage (MB)</label><input id="cache-limit" type="number" min="10" max="10000" value="250"><button id="cache-save" type="button">Save cache limit</button><button id="cache-clear" type="button">Clear map cache</button><p class="field-help">Tiles viewed through the local or network viewer are stored on the radio PC. Unvisited areas and zoom levels need internet.</p></section><form id="map-name-form"><label for="map-name-input">Map name</label><input id="map-name-input" type="text" maxlength="40" placeholder="TAIT" autocomplete="off"><button type="submit">Save name</button></form><label><input id="show-legend" type="checkbox" checked> Radio legend</label><label><input id="show-history" type="checkbox" checked> Track history</label><label><input id="show-status" type="checkbox" checked> Map status</label><button id="clear-history" title="Clear displayed radios, dots and trails. Saved files are preserved.">Clear history &amp; radios</button><button id="restore-history">Restore saved data</button><button id="reset-panels">Reset layout</button></div></details>
+      <div class="map-caption"><span class="caption-dot"></span><span id="visible-summary">No radios loaded</span></div>
+      <button id="fit" class="fit-button" title="Fit visible radios" aria-label="Fit visible radios">⌖</button>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <section class="history" aria-label="Track history">
+        <div class="history-top"><div><p class="eyebrow">TRACK HISTORY</p><h2 id="history-label">24 hours</h2></div><div class="history-actions"><button id="size-history" title="Change history panel size">Larger</button><button id="hide-history" class="panel-close" aria-label="Hide track history" title="Hide track history">×</button></div></div>
+        <input id="history-range" type="range" min="0" max="11" value="8" step="1" aria-label="Amount of track history">
+        <div class="range-labels"><span>Latest only</span><span>All history</span></div>
+        <div class="history-bottom"><span id="history-anchor">No recorded positions yet</span><span id="point-count">0 track points</span></div>
+      </section>
+      <div id="map-unavailable" class="map-unavailable" hidden>Map library could not load. Check your internet connection and refresh.</div>
+    </main>
+  </div>
+  <dialog id="radio-name-dialog" aria-labelledby="radio-name-title"><form id="radio-name-form"><p class="eyebrow">RADIO LEGEND</p><h2 id="radio-name-title">Radio name &amp; colour</h2><p id="radio-name-id"></p><label for="radio-name-input">Name</label><input id="radio-name-input" type="text" maxlength="40" placeholder="e.g. Team Alpha" autocomplete="off"><label for="radio-color-input">Points and track colour</label><div class="radio-color-row"><input id="radio-color-input" type="color" value="#168570"><button id="reset-radio-color" type="button">Default colour</button></div><p class="field-help">Name and colour are saved in this browser. The colour applies to the legend, position dots and tracks. Choose Default colour then Save changes to restore it. The original radio ID is retained.</p><div class="name-actions"><button id="cancel-radio-name" type="button">Cancel</button><button id="clear-radio-name" type="button">Clear name</button><button type="submit" class="primary">Save changes</button></div></form></dialog>
+  <dialog id="radio-dialog" aria-labelledby="radio-dialog-title">
+    <form id="radio-form">
+      <div class="dialog-heading"><div><p class="eyebrow">RADIO OPTIONS</p><h2 id="radio-dialog-title">Connect your radio</h2></div><button type="button" id="close-radio" aria-label="Close radio options">×</button></div>
+      <p class="dialog-intro">Choose a serial connection, then listen for reports or poll a list of radios.</p>
+      <div id="companion-pairing">
+        <p>Start <code>python radio-map/serve.py</code> on the radio PC. Enter the key printed in its terminal. Your browser may ask for local-network access.</p>
+        <label>Local companion address<input id="companion-address" type="url" value="http://127.0.0.1:8765"></label>
+        <label>Companion key<input id="companion-key" type="password" autocomplete="off" placeholder="Key from the local companion"></label>
+        <button id="show-remote-key" type="button">Show key</button>
+      </div>
+      <div id="local-pairing" hidden><details><summary>Pair the private website with this PC</summary><p>Use this companion key in the private website on this PC. Keep the local server running.</p><input id="local-companion-key" type="password" readonly aria-label="Local companion key"><button id="show-companion-key" type="button">Show key</button></details></div>
+      <div class="pair-actions"><button id="pair-radio" type="button">Pair / re-pair companion</button><button id="forget-pairing" type="button">Forget pairing</button></div>
+      <p class="field-help">You can replace the key at any time. Forgetting a pairing does not stop a session running on the radio PC.</p>
+      <div class="form-grid"><label>Serial port<select id="serial-port"><option value="">Load available ports…</option></select></label><label>Baud rate<select id="serial-baud"><option>1200</option><option>2400</option><option>4800</option><option selected>9600</option><option>14400</option><option>19200</option><option>28800</option><option>38400</option><option>57600</option><option>115200</option></select></label></div>
+      <div class="form-grid"><label>Mode<select id="serial-mode"><option value="listen">Listen for reports</option><option value="poll">Poll radios for location</option></select></label><label>Flow control<select id="serial-flow"><option value="none">None · 8N1</option><option value="xonxoff">XON/XOFF</option><option value="rtscts">RTS/CTS</option></select></label></div>
+      <button type="button" id="load-ports">↻ Load / refresh ports</button>
+      <section id="poll-settings" hidden><label>Radio IDs and intervals (seconds)<textarea id="poll-radios" rows="5" placeholder="3000030, 60&#10;3000029, 120"></textarea></label><p class="field-help">One radio per line: ID, interval in seconds. Polling transmits location requests; radios must support TAIT AVL polling.</p></section>
+      <p class="field-help">Sessions save KML, raw captures and event logs on the radio PC. Stop other serial applications before connecting.</p>
+      <div id="radio-error" class="form-error" role="alert" hidden></div>
+      <div class="radio-state"><span id="radio-state">Not connected to companion</span><span id="radio-output"></span></div>
+      <details class="diagnostics"><summary>Live diagnostics</summary><pre id="radio-logs">No session messages yet.</pre></details>
+      <div class="dialog-actions"><button type="button" id="stop-radio" disabled>Stop connection</button><button type="submit" id="start-radio" class="primary">Start listening</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

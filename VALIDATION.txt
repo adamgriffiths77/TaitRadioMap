@@ -1,0 +1,28 @@
+TAIT Radio Map 1.0 release validation
+Release date: 31 October 2026
+Platform: Windows
+Python: 3.12.14
+
+24 logger/poller Python tests: passed
+16 companion/PDF/cache Python tests: passed
+12 browser-logic Node tests: passed
+Total automated tests: 52 passed
+
+Guide: 19 pages, 6 demonstration screenshots. Rendered through Microsoft Word
+2016 PDF export and inspected as page PNGs. The bundled LibreOffice renderer
+was unavailable on this Windows host; native Word provided the layout check.
+
+Serial tests simulate IO. No release acceptance test on Mac hardware or every
+TAIT configuration is claimed. The current physical radio session was not
+interrupted to package this release.
+
+Dependency versions used for verification (not a lockfile):
+pyserial==3.5
+pypdf==6.10.0
+pypdfium2==5.14.0
+numpy==2.3.5
+Pillow==12.3.0
+pyproj==3.8.0
+
+The application uses supported dependency ranges in its requirements files.
+Dependencies, Python, radio drivers and Node.js are not included in the ZIP.

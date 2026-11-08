@@ -1,0 +1,16 @@
+TAIT Radio Map 1.0 third party notices
+
+Leaflet 1.9.4 is bundled under its BSD 2-Clause license. See
+radio-map/dist/vendor/leaflet-license.txt and the preserved source header.
+
+proj4js/mgrs 2.1.0 conversion code is bundled in core.mjs. Its source and
+license notices are retained in radio-map/dist/vendor.
+
+Python packages are installed separately from their distributions and retain
+their own licenses. They are not redistributed in this archive. See the
+installed distributions for pyserial, pypdf, pypdfium2/PDFium, NumPy, Pillow,
+pyproj/PROJ and their transitive dependencies.
+
+Map tiles/data are provided by the selected provider and remain subject to
+that provider's terms and attribution. No operational map tile archive or PDF
+map is bundled. Names of TAIT and third-party products do not imply endorsement.

@@ -1,0 +1,6 @@
+# Optional local GeoPDF import support
+pypdf>=5,<7
+pypdfium2>=4.30,<6
+numpy>=1.26,<3
+Pillow>=10,<13
+pyproj>=3.6,<4
