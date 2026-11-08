@@ -1,5 +1,22 @@
 # TAIT Radio Map version 1.0
 
+This program has been written by AI to receive Tait radio location data and display location and tracks on a map.
+
+## Features
+-supports both online and offline use.  
+    -OpenMaps is used for online mapping use and are cached for availability when operating in a disconnected state
+    -Geocoded PDF's are also supported (such as government produced topographic maps) for entirely offline use
+    -supports both Lat/Long and MGRS co-ordinate display with 8,6,4 figure grid references.
+    -configurable grid line display
+-connects to any tait Radio that supports CCDI via a serial port
+    -will automatically display location reports if the connected radio is configured as a "data dispatcher"
+    -also supports tait SDM to directly poll radios on the same network for a location report with configurable interval
+    -handles "receiver busy" messages and will defer positions requests until radio channel is free
+    -will work with either P25 or DMR Radios (tested predominately with DMR Tier 2)
+-configurable track display, colour and radio alias
+
+## USE
+
 Extract the entire folder. Python and downloaded packages are required; this is
 not a standalone executable. The full operator guide is in docs.
 
