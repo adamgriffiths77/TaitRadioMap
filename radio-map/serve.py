@@ -110,7 +110,12 @@ def make_handler(files, controller=None, token=None, optional_files=(), tile_cac
 
         def valid_host(self):
             host = self.headers.get('Host', '')
-            return host in {f'{address}:{self.server.server_port}' for address in getattr(self.server, 'allowed_hosts', {'127.0.0.1', 'localhost'})}
+            port = self.server.server_port
+            allowed = getattr(self.server, 'allowed_hosts', {'127.0.0.1', 'localhost'})
+            if host in {f'{address}:{port}' for address in allowed}:
+                return True
+            # A LAN connection identifies the local interface even without DNS.
+            return host == f'{self.connection.getsockname()[0]}:{port}'
 
         def do_OPTIONS(self):
             if not self.valid_host() or not self.origin_allowed():
@@ -266,8 +271,14 @@ def main():
     token = secrets.token_urlsafe(32)
     cache = TileCache(ROOT / 'runtime' / 'map-cache.sqlite')
     with ThreadingHTTPServer((args.host, args.port), make_handler(files, controller, token, optional_files, cache, PdfMaps(ROOT / 'runtime' / 'pdf-maps'))) as server:
-        addresses = {'127.0.0.1', 'localhost', *socket.gethostbyname_ex(socket.gethostname())[2]}
-        if args.host != '0.0.0.0': addresses.add(args.host)
+        addresses = {'127.0.0.1', 'localhost'}
+        if args.host == '0.0.0.0':
+            try:
+                addresses.update(socket.gethostbyname_ex(socket.gethostname())[2])
+            except socket.gaierror:
+                print('Could not discover a network viewer address. For LAN access, use this computer\'s IPv4 address.', flush=True)
+        else:
+            addresses.add(args.host)
         server.allowed_hosts = addresses
         for address in sorted(addresses - {'127.0.0.1', 'localhost'}):
             print(f'Network viewer: http://{address}:{args.port}', flush=True)
