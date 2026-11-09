@@ -9,13 +9,15 @@ This program has been written by AI to receive Tait radio location data and disp
     - supports both Lat/Long and MGRS co-ordinate display with 8,6,4 figure grid references.
     - configurable grid line display
     
-- connects to any tait Radio that supports CCDI via a serial port
+- connects to any Tait Radio that supports CCDI via a serial port
+    - tested with radios configured with Tait SDM as the message format 
     - will automatically display location reports if the connected radio is configured as a "data dispatcher"
-    - also supports tait SDM to directly poll radios on the same network for a location report with configurable interval
-    - handles "receiver busy" messages and will defer positions requests until radio channel is free
+    - also supports tait SDM messaging to directly poll radios on the same network for a location report with configurable interval
+    - handles "receiver busy" messages and will defer positions requests until radio channel is free (ie will not interrupt voice calls)
     - will work with either P25 or DMR Radios (tested predominately with DMR Tier 2)
     
 - configurable track display, colour and radio alias
+- works on both Mac and Windows 11
 
 ## USE
 
@@ -41,7 +43,7 @@ Open Terminal in this folder:
     ./.venv/bin/python -m pip install -r requirements-all.txt
     ./.venv/bin/python radio-map/serve.py
 
-Later starts can use bash start-macos.command. Mac hardware is not validated.
+Later starts can use bash start-macos.command.
 
 ## Radio connection
 Configure a suitable CCDI data cable/interface and matching baud/flow control.
