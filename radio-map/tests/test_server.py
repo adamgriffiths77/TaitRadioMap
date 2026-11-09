@@ -1,13 +1,46 @@
 import importlib.util
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
+import socket
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 import sys
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 spec = importlib.util.spec_from_file_location('map_server', Path(__file__).parents[1] / 'serve.py')
 server = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(server)
+
+
+class StartupTests(unittest.TestCase):
+    def test_unresolvable_hostname_keeps_server_running(self):
+        output = io.StringIO()
+        with (
+            patch.object(sys, 'argv', ['serve.py']),
+            patch.object(server.socket, 'gethostbyname_ex', side_effect=socket.gaierror(8, 'unknown host')),
+            patch.object(server, 'ThreadingHTTPServer') as http_server,
+            patch.object(server, 'TileCache'),
+            patch.object(server, 'PdfMaps'),
+            patch.object(server, 'RadioController'),
+            redirect_stdout(output),
+        ):
+            server.main()
+        running = http_server.return_value.__enter__.return_value
+        running.serve_forever.assert_called_once_with()
+        self.assertEqual(running.allowed_hosts, {'127.0.0.1', 'localhost'})
+        self.assertIn('http://127.0.0.1:8765', output.getvalue())
+
+    def test_host_check_accepts_socket_address_without_discovery(self):
+        handler = object.__new__(server.make_handler([]))
+        handler.server = SimpleNamespace(server_port=8765)
+        handler.connection = SimpleNamespace(getsockname=lambda: ('192.168.1.50', 8765))
+        for host, allowed in [('192.168.1.50:8765', True), ('untrusted.example:8765', False)]:
+            with self.subTest(host=host):
+                handler.headers = {'Host': host}
+                self.assertEqual(handler.valid_host(), allowed)
 
 
 class KmlTests(unittest.TestCase):
