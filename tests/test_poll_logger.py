@@ -78,6 +78,27 @@ class PollTests(unittest.TestCase):
         controller.tick(61)
         self.assertEqual(sent[-1], poll.poll_packet('3000030'))
 
+    def test_manual_poll_waits_for_active_response_and_gap(self):
+        sent = []
+        first, second = poll.Radio('03000030', 60), poll.Radio('03000029', 120, due=100)
+        controller = poll.Poller([first, second], sent.append)
+        self.ready(controller)
+        controller.tick(1)
+        controller.prompt(1.1)
+        controller.request(second.address)
+        controller.request(second.address)
+        controller.tick(2)
+        self.assertEqual(sent[-1], poll.poll_packet(first.address))
+        controller.response('0030', 3)
+        controller.tick(4)
+        self.assertEqual(len(sent), 2)
+        controller.tick(5)
+        self.assertEqual(sent[-1], poll.poll_packet(second.address))
+        controller.prompt(5.1)
+        controller.response('0029', 6)
+        controller.tick(8)
+        self.assertEqual(len(sent), 3)
+
     def test_busy_ptt_timeout_and_once(self):
         sent = []
         controller = poll.Poller([poll.Radio('03000030', 60)], sent.append, once=True)

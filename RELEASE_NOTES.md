@@ -1,3 +1,10 @@
+# Mainline updates
+
+- Add named waypoint groups under Panels → Waypoints. Place a waypoint by clicking the map or entering decimal latitude and longitude or a full WGS84 MGRS reference.
+- Show or hide groups, locate individual points, and import or export waypoint groups as CSV.
+- Add Poll to the Radio positions list. On-demand requests use the active Poll radios session and its configured radio IDs.
+- Continue companion startup when the computer hostname cannot be resolved.
+
 # Version 1.0
 
 Initial packaged release of the current TAIT Radio Map application.

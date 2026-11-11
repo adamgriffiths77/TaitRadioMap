@@ -1,4 +1,4 @@
-import {toUtm, fromUtm} from './core.mjs';
+import {toUtm, fromUtm, parseMgrs, parseWaypointCsv, waypointCsv} from './core.mjs';
 import {api, isPaired, companionUrl} from './radio-ui.mjs';
 
 const $ = id => document.getElementById(id);
@@ -122,4 +122,272 @@ export function setupMaps(map, {getTiles}) {
 }
 function escapeAttribution(value) {
   const span=document.createElement('span');span.textContent=value;return span.innerHTML;
+}
+
+export function setupWaypoints(map, formatCoordinates) {
+  const storageKey = 'tait-waypoint-groups';
+  const panel = $('waypoints');
+  const groupSelect = $('waypoint-group');
+  const form = $('waypoint-form');
+  const name = $('waypoint-name');
+  const latitude = $('waypoint-lat');
+  const longitude = $('waypoint-lon');
+  const entryFormat = $('waypoint-format');
+  const mgrs = $('waypoint-mgrs');
+  const csv = $('waypoint-csv');
+  const pick = $('waypoint-pick');
+  const layer = map ? L.layerGroup().addTo(map) : null;
+  let groups = [];
+  try {
+    groups = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+    if (!Array.isArray(groups)) groups = [];
+  } catch {}
+  let selected = groups.length ? 0 : -1;
+  let editing = -1;
+  let picking = false;
+
+  function status(message) {
+    $('waypoint-status').textContent = message;
+  }
+
+  function setPicking(value) {
+    picking = value;
+    pick.setAttribute('aria-pressed', String(value));
+    pick.textContent = value ? 'Cancel pick' : 'Pick on map';
+    map?.getContainer().classList.toggle('picking-waypoint', value);
+  }
+
+  function resetForm() {
+    const format = entryFormat.value;
+    form.reset();
+    setFormat(format);
+    editing = -1;
+    $('waypoint-save').textContent = 'Add waypoint';
+    $('waypoint-cancel').hidden = true;
+    setPicking(false);
+  }
+
+  function setFormat(format) {
+    entryFormat.value = format;
+    const grid = format === 'mgrs';
+    $('waypoint-latlon-fields').hidden = latitude.disabled = longitude.disabled = grid;
+    $('waypoint-mgrs-field').hidden = mgrs.disabled = !grid;
+  }
+  entryFormat.onchange = () => setFormat(entryFormat.value);
+
+  function button(label, action) {
+    const node = document.createElement('button');
+    node.type = 'button';
+    node.textContent = label;
+    node.onclick = action;
+    return node;
+  }
+
+  function draw() {
+    layer?.clearLayers();
+    for (const group of groups) {
+      if (!layer || !group.visible) continue;
+      for (const point of group.points) {
+        const popup = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = point.name;
+        popup.append(title, document.createElement('br'),
+          group.name, document.createElement('br'), formatCoordinates(point.lat, point.lon));
+        const icon = L.divIcon({className: 'waypoint-marker', iconSize: [16, 16]});
+        L.marker([point.lat, point.lon], {icon, title: point.name})
+          .bindPopup(popup).addTo(layer);
+      }
+    }
+    const list = $('waypoint-list');
+    list.replaceChildren();
+    const group = groups[selected];
+    if (!group) return;
+    for (const [index, point] of group.points.entries()) {
+      const row = document.createElement('li');
+      const title = document.createElement('strong');
+      title.textContent = point.name;
+      const coordinates = document.createElement('small');
+      coordinates.textContent = formatCoordinates(point.lat, point.lon);
+      const actions = document.createElement('div');
+      actions.className = 'waypoint-actions';
+      const locate = button('Locate', () => {
+        map.setView([point.lat, point.lon], Math.max(map.getZoom(), 15));
+        panel.open = false;
+        panel.closest('.layout-menu').open = false;
+      });
+      locate.disabled = !map;
+      actions.append(locate, button('Edit', () => {
+        setPicking(false);
+        setFormat('latlon');
+        editing = index;
+        name.value = point.name;
+        latitude.value = point.lat;
+        longitude.value = point.lon;
+        $('waypoint-save').textContent = 'Save changes';
+        $('waypoint-cancel').hidden = false;
+        name.focus();
+      }), button('Delete', () => {
+        if (!confirm(`Delete waypoint “${point.name}”?`)) return;
+        group.points.splice(index, 1);
+        resetForm();
+        save('Waypoint deleted.');
+      }));
+      row.append(title, coordinates, actions);
+      list.append(row);
+    }
+  }
+
+  function render() {
+    groupSelect.replaceChildren(...groups.map((group, index) => new Option(group.name, index)));
+    groupSelect.value = selected;
+    $('waypoint-group-controls').hidden = selected < 0;
+    $('waypoint-visible').checked = groups[selected]?.visible ?? false;
+    $('waypoint-export').disabled = !groups.length;
+    draw();
+  }
+
+  function save(message) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(groups));
+      status(message);
+    } catch {
+      status('Browser storage is unavailable. Changes will be lost on reload.');
+    }
+    render();
+  }
+
+  $('waypoint-group-form').onsubmit = event => {
+    event.preventDefault();
+    const input = $('waypoint-group-name');
+    const value = input.value.trim();
+    if (!value) return status('Enter a group name.');
+    if (groups.some(group => group.name === value)) return status('A group with that name already exists.');
+    groups.push({name: value, visible: true, points: []});
+    selected = groups.length - 1;
+    input.value = '';
+    resetForm();
+    save('Group added.');
+    name.focus();
+  };
+  groupSelect.onchange = () => {
+    selected = Number(groupSelect.value);
+    resetForm();
+    status('');
+    render();
+  };
+  $('waypoint-visible').onchange = event => {
+    groups[selected].visible = event.target.checked;
+    save(event.target.checked ? 'Group shown.' : 'Group hidden.');
+  };
+  $('waypoint-rename').onclick = () => {
+    const group = groups[selected];
+    const value = prompt('Group name', group.name)?.trim();
+    if (!value) return;
+    if (value.length > 60) return status('Group names can have up to 60 characters.');
+    if (groups.some(other => other !== group && other.name === value)) {
+      return status('A group with that name already exists.');
+    }
+    group.name = value;
+    save('Group renamed.');
+  };
+  $('waypoint-delete-group').onclick = () => {
+    if (!confirm(`Delete group “${groups[selected].name}” and all its waypoints?`)) return;
+    groups.splice(selected, 1);
+    selected = Math.min(selected, groups.length - 1);
+    resetForm();
+    save('Group deleted.');
+  };
+  $('waypoint-cancel').onclick = () => { resetForm(); status('Edit cancelled.'); };
+  form.onsubmit = event => {
+    event.preventDefault();
+    const label = name.value.trim();
+    if (!label) return status('Enter a waypoint name.');
+    let coordinates;
+    try {
+      coordinates = entryFormat.value === 'mgrs' ? parseMgrs(mgrs.value)
+        : {lat: latitude.valueAsNumber, lon: longitude.valueAsNumber};
+    } catch (error) {
+      status(error.message);
+      mgrs.focus();
+      return;
+    }
+    const points = groups[selected].points;
+    const message = editing < 0 ? 'Waypoint added.' : 'Waypoint updated.';
+    points[editing < 0 ? points.length : editing] = {name: label, ...coordinates};
+    resetForm();
+    save(message);
+  };
+  pick.disabled = !map;
+  pick.onclick = () => {
+    setPicking(!picking);
+    status(picking ? 'Click the map to fill in the coordinates.' : 'Map pick cancelled.');
+  };
+  panel.addEventListener('toggle', () => {
+    if (!panel.open && picking) {
+      setPicking(false);
+      status('');
+    }
+  });
+  panel.closest('.layout-menu').addEventListener('toggle', event => {
+    if (!event.currentTarget.open && picking) {
+      setPicking(false);
+      status('');
+    }
+  });
+  map?.on('click', event => {
+    if (!picking) return;
+    const point = map.wrapLatLng(event.latlng);
+    setFormat('latlon');
+    latitude.value = point.lat.toFixed(6);
+    longitude.value = point.lng.toFixed(6);
+    setPicking(false);
+    status('Coordinates selected. Save to place the waypoint.');
+    (name.value.trim() ? $('waypoint-save') : name).focus();
+  });
+  $('waypoint-import').onclick = () => csv.click();
+  csv.onchange = async () => {
+    const [file] = csv.files;
+    csv.value = '';
+    if (!file) return;
+    try {
+      if (file.size > 2 * 1024 * 1024) throw new Error('Choose a CSV file up to 2 MB.');
+      const rows = parseWaypointCsv(await file.text());
+      const byName = new Map(groups.map(group => [group.name, group]));
+      const seen = new Map();
+      let added = 0, created = 0;
+      for (const {group: label, point} of rows) {
+        let group = byName.get(label);
+        if (!group) {
+          group = {name: label, visible: true, points: []};
+          groups.push(group);
+          byName.set(label, group);
+          created++;
+        }
+        if (!point) continue;
+        if (!seen.has(group)) {
+          seen.set(group, new Set(group.points.map(item => JSON.stringify([item.name, item.lat, item.lon]))));
+        }
+        const keys = seen.get(group);
+        const key = JSON.stringify([point.name, point.lat, point.lon]);
+        if (keys.has(key)) continue;
+        keys.add(key);
+        group.points.push(point);
+        added++;
+      }
+      if (selected < 0 && groups.length) selected = 0;
+      save(`Imported ${added} waypoint(s) and ${created} new group(s). Exact duplicates were skipped.`);
+    } catch (error) {
+      status(error.message);
+    }
+  };
+  $('waypoint-export').onclick = () => {
+    const url = URL.createObjectURL(new Blob([waypointCsv(groups)], {type: 'text/csv;charset=utf-8'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'waypoints.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  render();
+  return draw;
 }

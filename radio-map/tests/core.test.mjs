@@ -1,7 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {parseMgrs, parseWaypointCsv, waypointCsv} from '../dist/core.mjs';
 import {normalize, trailSegments, historyPoints, windowLabel, colorFor, afterClear, mapName, mapStyle, MAP_STYLES, coordinateText, customRadioName, radioName} from '../dist/core.mjs';
 const p = (id, minutes, session = 'one') => ({id, time:new Date(minutes * 60000).toISOString(), lat:-37.9, lon:145.3, session});
+test('waypoint MGRS accepts displayed references and rejects incomplete references', () => {
+  const point = parseMgrs(coordinateText(-37.85, 145.1, 'mgrs5'));
+  assert.ok(Math.abs(point.lat + 37.85) < 0.00002);
+  assert.ok(Math.abs(point.lon - 145.1) < 0.00002);
+  assert.throws(() => parseMgrs('55H CU 123'), /full WGS84 MGRS/);
+});
+
+test('waypoint CSV round-trips quoted names and empty groups and accepts MGRS rows', () => {
+  const point = {name: "'@Gate", lat: 0, lon: -12};
+  const group = '=Field, "North"';
+  const csv = waypointCsv([{name: group, points: [point]}, {name: 'Empty', points: []}]);
+  assert.deepEqual(parseWaypointCsv('\uFEFF' + csv), [{group, point}, {group: 'Empty'}]);
+  const reference = '55H CU 32838 09126';
+  assert.deepEqual(parseWaypointCsv(`group,name,mgrs\r\nField,Gate,${reference}`),
+    [{group: 'Field', point: {name: 'Gate', ...parseMgrs(reference)}}]);
+  assert.throws(() => parseWaypointCsv('group,name,latitude,longitude\nField,Gate,91,145'), /data row 1/);
+});
 test('radio names retain original IDs and clearing returns to the ID',()=>{
   const names = new Map([['0030','  Team   Alpha ']]);
   assert.equal(radioName('0030',names),'Team Alpha');

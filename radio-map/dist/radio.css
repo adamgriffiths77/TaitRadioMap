@@ -15,3 +15,78 @@ dialog{border:1px solid #d9e4d7;border-radius:16px;padding:0;width:min(590px,cal
 .maps-menu>summary{position:sticky;top:0;background:#fcfdfb;z-index:2}.grid-label{white-space:nowrap;width:max-content!important;line-height:1.4}.maps-menu #map-name-form{padding-top:4px}
 
 .layout-menu>.panel-menu-body{width:320px;max-width:min(320px,calc(100vw - 60px))}.layout-menu .maps-menu{border-bottom:1px solid #e5ebdf;position:static;margin-bottom:8px}.layout-menu .maps-menu>summary{position:static;padding:12px 0;font-weight:600;background:transparent}.layout-menu .maps-menu>summary:before{content:"▸ ";color:#168570}.layout-menu .maps-menu[open]>summary:before{content:"▾ "}.layout-menu .maps-menu .panel-menu-body{width:auto;max-width:none;min-width:0;padding:0 0 12px}.layout-menu>summary{position:sticky;top:0;background:#fcfdfb;z-index:3}
+#waypoints .panel-menu-body {
+  max-width: none;
+  min-width: 0;
+}
+#waypoints form {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+#waypoints label:has(input:not([type="checkbox"])), #waypoints label:has(select) {
+  display: grid;
+  min-width: 0;
+}
+#waypoints input:not([type="checkbox"]), #waypoints select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #dce5d8;
+  border-radius: 6px;
+  background: white;
+  color: #294335;
+  font: inherit;
+}
+.waypoint-actions {
+  display: flex;
+  gap: 6px;
+}
+.waypoint-actions > * {
+  flex: 1;
+}
+#waypoint-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+#waypoint-list li {
+  display: grid;
+  gap: 5px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+#waypoint-status:empty {
+  display: none;
+}
+.leaflet-container.picking-waypoint {
+  cursor: crosshair;
+}
+.waypoint-marker {
+  background: #6b39a8;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px #472375;
+  border-radius: 3px;
+}
+.waypoint-marker::after {
+  content: "◆";
+  color: white;
+  display: block;
+  font-size: 10px;
+  line-height: 12px;
+  text-align: center;
+}
+.poll-radio {
+  position: absolute;
+  right: 30px;
+  bottom: -2px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.radio-poll-status {
+  margin: 0;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--line);
+  color: #45634e;
+  font-size: 12px;
+}

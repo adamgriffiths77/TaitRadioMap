@@ -95,8 +95,10 @@ class RadioController:
             if settings['mode'] == 'poll':
                 config = self.directory / (stem + '-radios.json')
                 config.write_text(json.dumps({'radios': settings['radios']}), encoding='utf-8')
-                command += ['--config', str(config)]
+                command += ['--config', str(config), '--manual-poll-stdin']
+            stdin = subprocess.PIPE if settings['mode'] == 'poll' else None
             process = self.launcher(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    stdin=stdin,
                                     text=True, encoding='utf-8', errors='replace',
                                     creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             self.process, self.settings, self.output = process, settings, output
@@ -104,6 +106,23 @@ class RadioController:
             self.logs.clear()
             threading.Thread(target=self._read_logs, args=(process,), daemon=True).start()
             return self.status()
+
+    def request_poll(self, identity):
+        if not isinstance(identity, str) or not re.fullmatch(r'[0-9]{1,8}', identity):
+            raise ValueError('Select a radio with a numeric ID')
+        with self.lock:
+            process = self.process
+            if self.stopping or not process or process.poll() is not None or self.settings['mode'] != 'poll':
+                raise ValueError('Start a Poll radios session in Radio connection first')
+            addresses = [str(row['id']).zfill(8) for row in self.settings['radios']]
+            address = identity.zfill(8)
+            if len(identity) == 4:
+                address = next((item for item in addresses if item.endswith(identity)), address)
+            if address not in addresses:
+                raise ValueError('Add this radio’s full ID to the poll list and restart the poll session')
+            process.stdin.write(address + '\n')
+            process.stdin.flush()
+            return {'id': address.lstrip('0')}
 
     def _read_logs(self, process):
         try:
@@ -113,6 +132,9 @@ class RadioController:
                         self.logs.append(line.rstrip())
         finally:
             process.stdout.close()
+            if process.stdin:
+                with self.lock:
+                    process.stdin.close()
 
     def stop(self):
         with self.lock:

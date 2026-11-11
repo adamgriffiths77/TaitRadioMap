@@ -12,6 +12,8 @@ import logging
 import math
 from pathlib import Path
 import re
+import sys
+import threading
 import time
 
 import tait_to_kml as logger
@@ -83,6 +85,13 @@ class Poller:
         self.ptt = False
         self.not_before = 0
         self.model_received = False
+        self.manual = {}
+
+    def request(self, address):
+        for radio in self.radios:
+            if radio.address == address and radio is not self.active:
+                self.manual[address] = radio
+                return
 
     def issue(self, kind, packet, now):
         self.send(packet)
@@ -170,16 +179,19 @@ class Poller:
             return
         if self.active or self.busy or self.ptt or now < self.not_before:
             return
-        available = [r for r in self.radios if r.due <= now and not (self.once and r.attempted)]
+        available = list(self.manual.values()) or [
+            r for r in self.radios if r.due <= now and not (self.once and r.attempted)]
         if available:
-            radio = min(available, key=lambda r: r.due)
+            radio = available[0] if self.manual else min(available, key=lambda r: r.due)
+            manual = self.manual.pop(radio.address, None) is not None
             self.issue('poll', poll_packet(radio.address, self.return_id, self.lead_in_ms), now)
             radio.attempted = True
             radio.due = now + radio.interval
             self.active = radio
             self.response_deadline = now + self.response_timeout
             self.not_before = now + self.gap
-            logging.info('Polling %s; interval %.1f seconds', radio.address, radio.interval)
+            logging.info('%s %s; interval %.1f seconds',
+                         'Manual poll for' if manual else 'Polling', radio.address, radio.interval)
 
     @property
     def done(self):
@@ -244,6 +256,7 @@ def main():
     parser.add_argument('--once', action='store_true', help='Poll every listed radio once, then exit')
     parser.add_argument('--dry-run', action='store_true', help='Print poll commands without opening a port or writing files')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--manual-poll-stdin', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format='%(levelname)s: %(message)s')
     try:
@@ -288,6 +301,19 @@ def main():
             poller = Poller(radios, send, args.response_timeout, args.command_timeout,
                             args.poll_gap, args.return_id, args.lead_in_ms, args.once)
             reader = logger.FrameReader()
+            requests = {}
+            request_lock = threading.Lock()
+            if args.manual_poll_stdin:
+                addresses = {radio.address for radio in radios}
+
+                def read_requests():
+                    for line in sys.stdin:
+                        address = line.strip()
+                        if address in addresses:
+                            with request_lock:
+                                requests[address] = None
+
+                threading.Thread(target=read_requests, daemon=True).start()
             poller.start(time.monotonic())
             while not poller.done:
                 chunk = stream.read(1)
@@ -314,6 +340,10 @@ def main():
                         logging.warning('Ignored record: %s', exc)
                 # Never transmit midway through an incoming frame.
                 if not reader.buffer:
+                    with request_lock:
+                        for address in requests:
+                            poller.request(address)
+                        requests.clear()
                     poller.tick(now)
         return 0
     except KeyboardInterrupt:

@@ -403,3 +403,24 @@ Python downloads: https://www.python.org/downloads/
 Virtual environments: https://docs.python.org/3/library/venv.html
 Port listing: https://pyserial.readthedocs.io/en/latest/tools.html
 
+# 15 Waypoints and on demand radio polls
+
+## Create and view waypoint groups
+
+Open Panels → Waypoints. Enter a group name and select Add group. Select a group to see its waypoints. Use Show group on map to control its purple markers. Select Locate beside a waypoint to centre the map on it.
+
+Enter a waypoint name and choose Latitude / longitude for decimal degrees, or MGRS (WGS84) for a full grid reference such as 55H CU 32838 09126. MGRS places the marker at the centre of the grid square. To choose a location visually, select Pick on map and click the map. Select Add waypoint to save.
+
+Use Edit or Delete beside a waypoint to manage it. Groups are stored in the browser that created them. Export a CSV to share them or move them to another browser.
+
+## Import and export waypoint CSV files
+
+Select Export CSV to download all waypoint groups. To import, select Import CSV and choose a file up to 2 MB. Use the headers group,name,latitude,longitude for decimal degrees or group,name,mgrs for full WGS84 MGRS references.
+
+Import adds new groups or merges rows into groups with the same name. A waypoint with the same name and coordinates in that group is skipped.
+
+## Request a fresh radio position
+
+In Radio connection, start a Poll radios for location session with the radio’s full ID in the poll list. In Radio positions, select Poll beside the radio. A four-digit AVL suffix is matched against the configured poll list.
+
+The companion queues the request behind an active poll and respects channel busy, PTT and minimum poll spacing. A queued request does not confirm a reply. Check Last heard for a new report or open Radio connection → Live diagnostics to see the poll and any timeout.

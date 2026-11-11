@@ -1,6 +1,6 @@
 import {WINDOWS, windowLabel, colorFor, normalize, trailSegments, historyPoints, parseKml, afterClear, mapName, MAP_STYLES, mapStyle, coordinateText, COORDINATE_FORMATS, customRadioName, radioName} from './core.mjs';
 import {setupRadioUI, api, isPaired} from './radio-ui.mjs';
-import {setupMaps} from './maps.mjs';
+import {setupMaps, setupWaypoints} from './maps.mjs';
 
 
 const $ = id => document.getElementById(id);
@@ -38,6 +38,7 @@ try { const saved = localStorage.getItem('tait-coordinate-format'); if (COORDINA
 $('coordinate-format').value = coordinateFormat;
 $('coordinate-format').onchange = event => {
   coordinateFormat = event.target.value;
+  refreshWaypoints();
   try { localStorage.setItem('tait-coordinate-format', coordinateFormat); } catch {}
   render();
 };
@@ -67,6 +68,7 @@ function connection(value, error = false) { $('connection').lastElementChild.tex
 function savePrefs() { try { localStorage.setItem('tait-hidden', JSON.stringify([...hidden])); localStorage.setItem('tait-history', historyIndex); } catch {} }
 
 const map = window.L ? L.map('map', {zoomControl:false}).setView([-37.85, 145.1], 10) : null;
+const refreshWaypoints = setupWaypoints(map, (lat, lon) => coordinateText(lat, lon, coordinateFormat));
 let tiles;
 function setMapStyle(value) {
   const selected = mapStyle(value), style = MAP_STYLES[selected];
@@ -133,6 +135,15 @@ function renderLegend() {
     edit.title = `Set name or colour for radio ${radio.id}`; edit.setAttribute('aria-label', `Edit name and colour for radio ${radio.id}`);
     edit.onclick = () => editRadioName(radio);
     content.append(edit);
+    if (/^[0-9]{1,8}$/.test(radio.id)) {
+      const poll = text('button', 'Poll', 'poll-radio');
+      poll.type = 'button';
+      poll.title = 'Request a fresh location in Poll radios mode';
+      poll.setAttribute('aria-label', `Poll radio ${radio.id}`);
+      poll.disabled = pendingPolls.has(radio.id);
+      poll.onclick = () => pollRadio(radio.id, poll);
+      content.append(poll);
+    }
     row.append(check, content); list.append(row);
   }
   if (radios.length && !list.children.length) list.append(text('div', 'No matching radio IDs or names', 'no-search'));
@@ -140,6 +151,25 @@ function renderLegend() {
   $('empty').hidden = radios.length > 0;
   list.hidden = radios.length === 0;
   $('toggle-all').textContent = radios.some(r => !hidden.has(r.id)) ? 'Hide all' : 'Show all';
+}
+
+const pendingPolls = new Set();
+async function pollRadio(id, button) {
+  const status = $('radio-poll-status');
+  pendingPolls.add(id);
+  button.disabled = true;
+  status.hidden = false;
+  status.textContent = `Requesting a location from ${id}…`;
+  try {
+    const result = await api('/api/radio/poll', {method:'POST', body:JSON.stringify({id})});
+    status.textContent = `Poll requested for ${result.id}. The position updates when a report arrives.`;
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    pendingPolls.delete(id);
+    if (button.isConnected) button.disabled = false;
+    else renderLegend();
+  }
 }
 function renderMap() {
   for (const item of layers.values()) item.group.remove();

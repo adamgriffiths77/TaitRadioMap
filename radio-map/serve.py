@@ -160,6 +160,10 @@ def make_handler(files, controller=None, token=None, optional_files=(), tile_cac
                     self.send_json(controller.start(data))
                 elif route == '/api/radio/stop':
                     self.send_json(controller.stop())
+                elif route == '/api/radio/poll':
+                    if not isinstance(data, dict):
+                        raise ValueError('Expected a radio ID')
+                    self.send_json(controller.request_poll(data.get('id')))
                 else:
                     self.send_json({'error': 'Unknown command'}, 404)
             except (OSError, ValueError, TypeError) as exc:

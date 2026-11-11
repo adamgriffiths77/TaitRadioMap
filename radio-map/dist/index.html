@@ -22,6 +22,7 @@
       <p class="subtitle">Latest reports. One shared picture.</p>
       <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a radio ID or name…" aria-label="Find a radio ID or name"></div>
       <div class="list-heading"><span>RADIO / LAST HEARD</span><button id="toggle-all">Hide all</button></div>
+      <p id="radio-poll-status" class="radio-poll-status" role="status" hidden></p>
       <div id="radio-list" class="radio-list"></div>
       <div id="empty" class="empty"><span>⌖</span><h2>Ready for your radios</h2><p>Open a KML file to see positions and tracks, or start the local viewer for automatic updates.</p><button id="empty-open">Open KML files</button></div>
       <footer class="sidebar-footer"><span class="source-icon">↻</span><div><strong id="source-title">KML position data</strong><p id="source-detail">Waiting for a data source</p></div><button id="refresh" title="Refresh source" aria-label="Refresh source">↻</button></footer>
@@ -41,7 +42,50 @@
 <label><input id="pdf-only" type="checkbox"> PDF only (no online tiles)</label>
 <label for="pdf-opacity">PDF opacity</label><input id="pdf-opacity" type="range" min="10" max="100" value="100">
 <div class="pdf-actions"><button id="pdf-fit" type="button">Fit PDF map</button><button id="pdf-remove" type="button">Delete PDF map</button></div>
-<p id="pdf-status" class="field-help" role="status"></p></section></div></details><section id="cache-controls"><strong>Map tile cache</strong><p id="cache-status">Pair with the companion to manage its shared cache.</p><label for="cache-limit">Maximum storage (MB)</label><input id="cache-limit" type="number" min="10" max="10000" value="250"><button id="cache-save" type="button">Save cache limit</button><button id="cache-clear" type="button">Clear map cache</button><p class="field-help">Tiles viewed through the local or network viewer are stored on the radio PC. Unvisited areas and zoom levels need internet.</p></section><form id="map-name-form"><label for="map-name-input">Map name</label><input id="map-name-input" type="text" maxlength="40" placeholder="TAIT" autocomplete="off"><button type="submit">Save name</button></form><label><input id="show-legend" type="checkbox" checked> Radio legend</label><label><input id="show-history" type="checkbox" checked> Track history</label><label><input id="show-status" type="checkbox" checked> Map status</label><button id="clear-history" title="Clear displayed radios, dots and trails. Saved files are preserved.">Clear history &amp; radios</button><button id="restore-history">Restore saved data</button><button id="reset-panels">Reset layout</button></div></details>
+<p id="pdf-status" class="field-help" role="status"></p></section></div></details>
+      <details id="waypoints" class="maps-menu">
+        <summary>Waypoints</summary>
+        <div class="panel-menu-body">
+          <form id="waypoint-group-form">
+            <label>New group name<input id="waypoint-group-name" required maxlength="60"></label>
+            <button>Add group</button>
+          </form>
+          <section id="waypoint-group-controls" hidden>
+            <label for="waypoint-group">Group</label>
+            <select id="waypoint-group"></select>
+            <label><input type="checkbox" id="waypoint-visible"> Show group on map</label>
+            <div class="waypoint-actions">
+              <button type="button" id="waypoint-rename">Rename group</button>
+              <button type="button" id="waypoint-delete-group">Delete group</button>
+            </div>
+            <form id="waypoint-form">
+              <label>Waypoint name<input id="waypoint-name" required maxlength="60"></label>
+              <label for="waypoint-format">Entry format</label>
+              <select id="waypoint-format"><option value="latlon">Latitude / longitude</option><option value="mgrs">MGRS (WGS84)</option></select>
+              <div id="waypoint-latlon-fields" class="waypoint-actions">
+                <label>Latitude<input id="waypoint-lat" type="number" step="any" min="-90" max="90" required></label>
+                <label>Longitude<input id="waypoint-lon" type="number" step="any" min="-180" max="180" required></label>
+              </div>
+              <label id="waypoint-mgrs-field" hidden>MGRS grid reference<input id="waypoint-mgrs" placeholder="55H CU 33000 08000" maxlength="32" required disabled></label>
+              <div class="waypoint-actions">
+                <button type="button" id="waypoint-pick" aria-pressed="false">Pick on map</button>
+                <button id="waypoint-save">Add waypoint</button>
+                <button type="button" id="waypoint-cancel" hidden>Cancel edit</button>
+              </div>
+            </form>
+            <ul id="waypoint-list" aria-label="Waypoints in selected group"></ul>
+          </section>
+          <div class="waypoint-actions">
+            <button type="button" id="waypoint-import">Import CSV</button>
+            <button type="button" id="waypoint-export">Export CSV</button>
+          </div>
+          <input id="waypoint-csv" type="file" accept=".csv,text/csv" hidden>
+          <p class="field-help">CSV columns: group, name, latitude, longitude. You can supply mgrs instead of latitude and longitude.</p>
+          <p id="waypoint-status" role="status"></p>
+          <p class="field-help">Use decimal degrees, a full WGS84 MGRS grid reference, or pick a point on the map. Groups are saved in this browser.</p>
+        </div>
+      </details>
+<section id="cache-controls"><strong>Map tile cache</strong><p id="cache-status">Pair with the companion to manage its shared cache.</p><label for="cache-limit">Maximum storage (MB)</label><input id="cache-limit" type="number" min="10" max="10000" value="250"><button id="cache-save" type="button">Save cache limit</button><button id="cache-clear" type="button">Clear map cache</button><p class="field-help">Tiles viewed through the local or network viewer are stored on the radio PC. Unvisited areas and zoom levels need internet.</p></section><form id="map-name-form"><label for="map-name-input">Map name</label><input id="map-name-input" type="text" maxlength="40" placeholder="TAIT" autocomplete="off"><button type="submit">Save name</button></form><label><input id="show-legend" type="checkbox" checked> Radio legend</label><label><input id="show-history" type="checkbox" checked> Track history</label><label><input id="show-status" type="checkbox" checked> Map status</label><button id="clear-history" title="Clear displayed radios, dots and trails. Saved files are preserved.">Clear history &amp; radios</button><button id="restore-history">Restore saved data</button><button id="reset-panels">Reset layout</button></div></details>
       <div class="map-caption"><span class="caption-dot"></span><span id="visible-summary">No radios loaded</span></div>
       <button id="fit" class="fit-button" title="Fit visible radios" aria-label="Fit visible radios">⌖</button>
       <div id="notice" class="notice" role="status" hidden></div>

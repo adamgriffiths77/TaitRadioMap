@@ -840,8 +840,87 @@ function getMinNorthing(zoneLetter) {
 
 }
 
-return {forward, LLtoUTM, UTMtoLL};
+return {forward, toPoint, LLtoUTM, UTMtoLL};
 })();
 
 export const toUtm = (lat,lon) => mgrsEngine.LLtoUTM({lat,lon});
 export const fromUtm = (easting,northing,zoneNumber,zoneLetter) => mgrsEngine.UTMtoLL({easting,northing,zoneNumber,zoneLetter});
+
+export function parseMgrs(value) {
+  const reference = value.trim().toUpperCase().replace(/^MGRS\s+/, '').replace(/\s/g, '');
+  const match = /^(0?[1-9]|[1-5]\d|60)([C-HJ-NP-X])[A-HJ-NP-Z][A-HJ-NP-V]((?:\d{2}){1,5})$/.exec(reference);
+  const message = 'Enter a full WGS84 MGRS grid reference with 2, 4, 6, 8 or 10 digits.';
+  if (!match) throw new Error(message);
+  const [, zone, band, digits] = match;
+  let lon, lat;
+  try {
+    [lon, lat] = mgrsEngine.toPoint(reference.replace(/^0/, ''));
+  } catch {
+    throw new Error(message);
+  }
+  const south = 'CDEFGHJKLMNPQRSTUVWX'.indexOf(band) * 8 - 80;
+  const tolerance = 10 ** (5 - digits.length / 2) / 100000;
+  if (!Number.isFinite(lon) || Math.abs(lon) > 180 || !Number.isFinite(lat) ||
+      lat < south - tolerance || lat > south + (band === 'X' ? 12 : 8) + tolerance ||
+      (band === 'X' && ['32', '34', '36'].includes(zone))) {
+    throw new Error(message);
+  }
+  return {lat, lon};
+}
+
+export function parseWaypointCsv(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const field = /(?:"((?:[^"]|"")*)"|([^",\r\n]*))(,|\r\n|\n|\r|$)/y;
+  const rows = [];
+  let row = [];
+  while (field.lastIndex < text.length) {
+    const match = field.exec(text);
+    if (!match) throw new Error('Invalid CSV quoting.');
+    const [, quoted, plain, separator] = match;
+    row.push(quoted === undefined ? plain : quoted.replace(/""/g, '"'));
+    if (separator === ',' && field.lastIndex < text.length) continue;
+    if (separator === ',') row.push('');
+    if (row.some(value => value.trim())) rows.push(row);
+    row = [];
+  }
+  const header = rows.shift()?.map(value => value.trim().toLowerCase()) ?? [];
+  const columns = Object.fromEntries(['group', 'name', 'latitude', 'longitude', 'mgrs']
+    .map(key => [key, header.indexOf(key)]));
+  const hasLatLon = columns.latitude >= 0 && columns.longitude >= 0;
+  if (columns.group < 0 || columns.name < 0 || (!hasLatLon && columns.mgrs < 0)) {
+    throw new Error('CSV needs group and name columns plus latitude and longitude, or mgrs.');
+  }
+  return rows.map((values, index) => {
+    const read = key => values[columns[key]]?.trim() ?? '';
+    const unescapeName = value => value.replace(/^'(?=['=+\-@])/, '');
+    const group = unescapeName(read('group')), name = unescapeName(read('name'));
+    const latitude = read('latitude'), longitude = read('longitude'), mgrs = read('mgrs');
+    const fail = message => { throw new Error(`CSV data row ${index + 1}: ${message}`); };
+    if (values.length !== header.length || !group || group.length > 60 || name.length > 60) {
+      fail('Check the column count and names (up to 60 characters).');
+    }
+    if (!name && !latitude && !longitude && !mgrs) return {group};
+    if (!name) fail('Enter a waypoint name.');
+    if (mgrs && !latitude && !longitude) {
+      try { return {group, point: {name, ...parseMgrs(mgrs)}}; }
+      catch (error) { fail(error.message); }
+    }
+    const lat = Number(latitude), lon = Number(longitude);
+    const decimal = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
+    if (!decimal.test(latitude) || !decimal.test(longitude) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      fail('Enter valid latitude and longitude in decimal degrees.');
+    }
+    return {group, point: {name, lat, lon}};
+  });
+}
+
+export function waypointCsv(groups) {
+  const nameField = value => /^['=+\-@]/.test(value) ? "'" + value : value;
+  const rows = [['group', 'name', 'latitude', 'longitude']];
+  for (const group of groups) {
+    const groupName = nameField(group.name);
+    if (!group.points.length) rows.push([groupName, '', '', '']);
+    for (const point of group.points) rows.push([groupName, nameField(point.name), point.lat, point.lon]);
+  }
+  return rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(',')).join('\r\n') + '\r\n';
+}

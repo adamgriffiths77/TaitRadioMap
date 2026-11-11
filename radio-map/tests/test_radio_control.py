@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 import threading
@@ -18,6 +19,7 @@ SETTINGS = {'port':'COM7', 'baud':9600, 'mode':'listen', 'flow':'none'}
 class FakeProcess:
     def __init__(self):
         self.stdout = io.StringIO('INFO: simulated radio ready\n')
+        self.stdin = None
         self.code = None
     def poll(self):
         return self.code
@@ -30,7 +32,12 @@ class FakeProcess:
 class RadioTests(unittest.TestCase):
     def test_http_controls_require_key_and_allowlisted_origin(self):
         with tempfile.TemporaryDirectory() as folder:
-            manager = RadioController(folder, lambda:PORTS, lambda *a, **k:FakeProcess())
+            def launch(*args, stdin=None, **kwargs):
+                process = FakeProcess()
+                if stdin is not None:
+                    process.stdin = Mock()
+                return process
+            manager = RadioController(folder, lambda:PORTS, launch)
             server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler([], manager, 'test-key'))
             thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
             def request(method, path, data=None, headers=None):
@@ -49,7 +56,15 @@ class RadioTests(unittest.TestCase):
                 self.assertEqual(request('GET','/api/radio/status',headers={**auth,'Origin':'https://untrusted.example'})[0],403)
                 self.assertEqual(request('POST','/api/radio/start',SETTINGS,auth)[1]['running'],True)
                 self.assertEqual(request('POST','/api/radio/start',SETTINGS,auth)[0],400)
+                poll_request = {'id': '0030'}
+                self.assertEqual(request('POST','/api/radio/poll',poll_request,auth)[0],400)
                 self.assertEqual(request('POST','/api/radio/stop',{},auth)[1]['running'],False)
+                poll_settings = {**SETTINGS, 'mode': 'poll', 'radios': [{'id': '3000030', 'interval': 60}]}
+                self.assertEqual(request('POST','/api/radio/start',poll_settings,auth)[0],200)
+                self.assertEqual(request('POST','/api/radio/poll',poll_request)[0],403)
+                self.assertEqual(request('POST','/api/radio/poll',{'id': '4000030'},auth)[0],400)
+                self.assertEqual(request('POST','/api/radio/poll',poll_request,auth)[:2], (200, {'id': '3000030'}))
+                manager.process.stdin.write.assert_called_once_with('03000030\n')
                 self.assertEqual(request('OPTIONS','/api/radio/start',headers={'Origin':SITE_ORIGIN})[2],SITE_ORIGIN)
                 self.assertEqual(request('GET','/api/positions',headers=auth)[0],200)
             finally:
