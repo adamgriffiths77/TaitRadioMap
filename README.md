@@ -21,11 +21,11 @@ This program has been written by AI to receive Tait radio location data and disp
 
 ## USE
 
-Extract the entire folder. Python and downloaded packages are required; this is
+Download the entire repository as a ZIP file (under the green code button) and Extract the entire folder. Python and downloaded packages are required; this is
 not a standalone executable. The full operator guide is in docs.
 
 ## Windows
-Open PowerShell in this folder:
+Open PowerShell in this extracted folder:
 
     python -m venv .venv
     .\.venv\Scripts\python.exe -m pip install --upgrade pip
@@ -36,7 +36,7 @@ If python is unavailable, use py -3 for the first command. Later starts can use
 start-windows.cmd. Keep the terminal running and open http://127.0.0.1:8765.
 
 ## macOS
-Open Terminal in this folder:
+Open Terminal in this extracted folder:
 
     python3 -m venv .venv
     ./.venv/bin/python -m pip install --upgrade pip
