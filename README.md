@@ -1,6 +1,6 @@
-# TAIT Radio Map version 1.0
+# TAIT Radio Map version 1.1
 
-This program has been written by AI to receive Tait radio location data and display location and tracks on a map.
+This program has been entirely written by AI to receive Tait radio location data and display location and tracks on a map.
 
 ## Features
 - supports both online and offline use.  
