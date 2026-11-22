@@ -145,7 +145,7 @@ function renderLegend() {
     if (radio.responseStatus === 'no_fix') content.append(text('div', 'No GPS fix', 'heard'));
     if (radio.latest) {
       if (!radio.responseStatus || radio.responseStatus === 'no_fix') {
-        const positionTime = text('div', `Position ${timeFormat.format(new Date(radio.latest.time))} (${age(radio.latest.time)})`, 'heard');
+        const positionTime = text('div', `Last position Received ${timeFormat.format(new Date(radio.latest.time))} (${age(radio.latest.time)})`, 'heard');
         positionTime.title = formatted(radio.latest.time);
         content.append(positionTime);
       }
