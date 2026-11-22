@@ -155,7 +155,7 @@ function renderLegend() {
     edit.title = `Set name or colour for radio ${radio.id}`; edit.setAttribute('aria-label', `Edit name and colour for radio ${radio.id}`);
     edit.onclick = () => editRadioName(radio);
     content.append(edit);
-    const remove = text('button', 'Delete', 'delete-radio');
+    const remove = text('button', '🗑', 'delete-radio');
     remove.type = 'button';
     remove.title = 'Remove this radio until a newer report arrives';
     remove.setAttribute('aria-label', `Delete radio ${radio.id}`);
