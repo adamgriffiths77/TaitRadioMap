@@ -92,7 +92,7 @@ dialog{border:1px solid #d9e4d7;border-radius:16px;padding:0;width:min(590px,cal
 }
 
 .edit-radio-name { right: 24px; }
-.poll-radio { right: 58px; }
+.poll-radio { right: 58px; line-height: 18px; }
 .delete-radio {
   position: absolute;
   right: -5px;
