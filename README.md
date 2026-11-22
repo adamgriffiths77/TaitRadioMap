@@ -1,4 +1,4 @@
-# TAIT Radio Map version 1.1
+# TAIT Radio Map version 1.2
 
 This program has been entirely written by AI to receive Tait radio location data and display location and tracks on a map.
 
