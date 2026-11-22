@@ -131,15 +131,15 @@ function renderLegend() {
     check.onchange = () => { check.checked ? hidden.delete(radio.id) : hidden.add(radio.id); savePrefs(); render(); };
     const content = text('div', '', 'radio-content'), name = text('div', '', 'radio-name');
     const label = text('button', displayName(radio)); label.title = radio.latest ? `Centre map on radio ${radio.id}` : 'No known GPS position'; label.disabled = !radio.latest; label.onclick = () => focusRadio(radio);
-    name.append(label, text('span', age(radio.lastHeard), 'age'));
-    const heard = text('div', `Last heard ${timeFormat.format(new Date(radio.lastHeard))}`, 'heard'); heard.title = formatted(radio.lastHeard);
-    content.append(name, heard);
-    if (responseText(radio)) content.append(text('div', responseText(radio), 'heard'));
+    const responseAge = text('span', age(radio.lastHeard), 'age');
+    responseAge.title = formatted(radio.lastHeard);
+    name.append(label, responseAge);
+    content.append(name);
+    if (aliases.has(radio.id)) content.append(text('div', `ID ${radio.id}`, 'radio-id-detail'));
+    if (radio.responseStatus === 'no_fix') content.append(text('div', 'No GPS fix', 'heard'));
     if (radio.latest) {
-      content.append(text('div', `Position ${timeFormat.format(new Date(radio.latest.time))}`, 'heard'));
       content.append(text('div', coordinateText(radio.latest.lat, radio.latest.lon, coordinateFormat), 'coordinates'));
     } else content.append(text('div', 'No known GPS position', 'coordinates'));
-    if (aliases.has(radio.id)) content.insertBefore(text('div', `ID ${radio.id}`, 'radio-id-detail'), heard);
     const edit = text('button', '✎', 'edit-radio-name'); edit.type = 'button';
     edit.title = `Set name or colour for radio ${radio.id}`; edit.setAttribute('aria-label', `Edit name and colour for radio ${radio.id}`);
     edit.onclick = () => editRadioName(radio);
