@@ -138,6 +138,11 @@ function renderLegend() {
     if (aliases.has(radio.id)) content.append(text('div', `ID ${radio.id}`, 'radio-id-detail'));
     if (radio.responseStatus === 'no_fix') content.append(text('div', 'No GPS fix', 'heard'));
     if (radio.latest) {
+      if (!radio.responseStatus || radio.responseStatus === 'no_fix') {
+        const positionTime = text('div', `Position ${timeFormat.format(new Date(radio.latest.time))}`, 'heard');
+        positionTime.title = formatted(radio.latest.time);
+        content.append(positionTime);
+      }
       content.append(text('div', coordinateText(radio.latest.lat, radio.latest.lon, coordinateFormat), 'coordinates'));
     } else content.append(text('div', 'No known GPS position', 'coordinates'));
     const edit = text('button', '✎', 'edit-radio-name'); edit.type = 'button';
