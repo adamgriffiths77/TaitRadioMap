@@ -1,4 +1,4 @@
-import {WINDOWS, windowLabel, colorFor, normalize, trailSegments, historyPoints, parseKml, afterClear, mapName, MAP_STYLES, mapStyle, coordinateText, COORDINATE_FORMATS, customRadioName, radioName} from './core.mjs';
+import {WINDOWS, windowLabel, colorFor, normalize, trailSegments, historyPoints, parseKml, afterClear, afterRadioClear, mapName, MAP_STYLES, mapStyle, coordinateText, COORDINATE_FORMATS, customRadioName, radioName} from './core.mjs';
 import {setupRadioUI, api, isPaired} from './radio-ui.mjs';
 import {setupMaps, setupWaypoints} from './maps.mjs';
 
@@ -46,6 +46,12 @@ const local = location.protocol === 'http:';
 let radios = [], anchor = 0, layers = new Map(), mode = local ? 'live' : 'files';
 let imported = [], busy = false, fitted = false, lastSync = null, dataSignature = '';
 let lastPoints = [], lastReports = [], clearedThrough = null;
+let deletedThrough = new Map();
+try {
+  deletedThrough = new Map(Object.entries(JSON.parse(localStorage.getItem('tait-deleted-radios') || '{}'))
+    .filter(([, value]) => Number.isFinite(value)));
+} catch {}
+
 try { const saved = localStorage.getItem('tait-cleared-through'); if (saved !== null && Number.isFinite(Number(saved))) clearedThrough = Number(saved); } catch {}
 let hidden;
 try { hidden = new Set(JSON.parse(localStorage.getItem('tait-hidden') || '[]')); } catch { hidden = new Set(); }
@@ -149,6 +155,17 @@ function renderLegend() {
     edit.title = `Set name or colour for radio ${radio.id}`; edit.setAttribute('aria-label', `Edit name and colour for radio ${radio.id}`);
     edit.onclick = () => editRadioName(radio);
     content.append(edit);
+    const remove = text('button', 'Delete', 'delete-radio');
+    remove.type = 'button';
+    remove.title = 'Remove this radio until a newer report arrives';
+    remove.setAttribute('aria-label', `Delete radio ${radio.id}`);
+    remove.onclick = () => {
+      deletedThrough.set(radio.id, Math.max(radio.lastHeard, radio.latest?.time || 0));
+      try { localStorage.setItem('tait-deleted-radios', JSON.stringify(Object.fromEntries(deletedThrough))); } catch {}
+      dataSignature = '';
+      setData(lastPoints, lastReports);
+    };
+    content.append(remove);
     if (/^[0-9]{1,8}$/.test(radio.id)) {
       const poll = text('button', 'Poll', 'poll-radio');
       poll.type = 'button';
@@ -243,13 +260,15 @@ function setData(points, reports = []) {
   const signature = JSON.stringify([points, reports]);
   if (signature === dataSignature) return;
   dataSignature = signature;
-  radios = normalize(afterClear(points, clearedThrough), afterClear(reports, clearedThrough));
+  radios = normalize(
+    afterRadioClear(afterClear(points, clearedThrough), deletedThrough),
+    afterRadioClear(afterClear(reports, clearedThrough), deletedThrough));
   anchor = radios.length ? Math.max(...radios.map(r => Math.max(r.latest?.time || 0, r.lastHeard))) : 0;
   render();
   $('clear-history').disabled = !radios.length;
-  $('restore-history').disabled = clearedThrough === null;
-  $('empty').querySelector('h2').textContent = clearedThrough === null ? 'Ready for your radios' : 'Waiting for new reports';
-  $('empty').querySelector('p').textContent = clearedThrough === null ? 'Open a KML file to see positions and tracks, or start the local viewer for automatic updates.' : 'History and the radio list have been cleared. Newer reports will appear here. Use Panels → Restore saved data to bring back previous reports.';
+  $('restore-history').disabled = clearedThrough === null && !deletedThrough.size;
+  $('empty').querySelector('h2').textContent = clearedThrough === null && !deletedThrough.size ? 'Ready for your radios' : 'Waiting for new reports';
+  $('empty').querySelector('p').textContent = clearedThrough === null && !deletedThrough.size ? 'Open a KML file to see positions and tracks, or start the local viewer for automatic updates.' : 'History and the radio list have been cleared. Newer reports will appear here. Use Panels → Restore saved data to bring back previous reports.';
   if (!fitted && radios.length) { fit(); fitted = true; }
 }
 async function loadLive() {
@@ -309,6 +328,8 @@ $('clear-history').onclick = () => {
 };
 $('restore-history').onclick = () => {
   clearedThrough = null;
+  deletedThrough.clear();
+  try { localStorage.removeItem('tait-deleted-radios'); } catch {}
   try { localStorage.removeItem('tait-cleared-through'); } catch {}
   dataSignature = ''; fitted = false; setData(lastPoints, lastReports);
 };
@@ -319,7 +340,7 @@ new ResizeObserver(() => map?.invalidateSize()).observe($('map'));
 setupPanels();
 render();
 $('clear-history').disabled = true;
-$('restore-history').disabled = clearedThrough === null;
+$('restore-history').disabled = clearedThrough === null && !deletedThrough.size;
 mode = local ? 'live' : 'files';
 setupRadioUI(() => { mode = 'live'; fitted = false; loadLive(); });
 connection(local ? 'Connecting to shared data' : 'Radio not connected'); $('source-detail').textContent = local ? 'Shared radio feed · refresh every 5s' : 'Connect a radio or open KML files';

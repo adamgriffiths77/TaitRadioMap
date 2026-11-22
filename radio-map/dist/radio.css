@@ -90,3 +90,13 @@ dialog{border:1px solid #d9e4d7;border-radius:16px;padding:0;width:min(590px,cal
   color: #45634e;
   font-size: 12px;
 }
+
+.edit-radio-name { right: 48px; }
+.poll-radio { right: 82px; }
+.delete-radio {
+  position: absolute;
+  right: -5px;
+  bottom: -2px;
+  padding: 2px 7px;
+  font-size: 11px;
+}

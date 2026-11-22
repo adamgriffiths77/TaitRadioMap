@@ -26,6 +26,12 @@ export function mapName(value) { return String(value ?? '').trim().replace(/\s+/
 export function afterClear(points, cutoff) {
   return cutoff === null ? points : points.filter(point => Date.parse(point.time) > cutoff);
 }
+export function afterRadioClear(points, cutoffs) {
+  return points.filter(point => {
+    const id = String(point.id || 'Unknown radio');
+    return !cutoffs.has(id) || Date.parse(point.time) > cutoffs.get(id);
+  });
+}
 export function windowLabel(minutes) {
   if (minutes === 0) return 'Latest positions only';
   if (!Number.isFinite(minutes)) return 'All recorded history';
