@@ -21,8 +21,7 @@ This program has been entirely written by AI to receive Tait radio location data
 
 ## USE
 
-Download the entire repository as a ZIP file (under the green code button) and Extract the entire folder. Python and downloaded packages are required; this is
-not a standalone executable. The full operator guide is in docs.
+Download the entire repository as a ZIP file (under the green code button) and Extract the entire folder. Python and downloaded packages are required; this is not a standalone executable but does not require admin permissions to install on most computers. The full operator guide is in docs.
 
 ## Windows
 Open PowerShell in this extracted folder:
