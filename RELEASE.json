@@ -1,8 +1,9 @@
 {
   "application": "TAIT Radio Map",
-  "version": "1.0",
-  "release_date": "2026-10-31",
-  "source_revision": "cc606c0a5154e37e67350eb6e97c0fe29104cc30",
+  "version": "1.2",
+  "release_date": "2026-11-23",
+  "source_revision": "a6ad4ce74a69c5b594977f70e28db1c1b401a47e",
+  "source_revision_scope": "Application source baseline before the 1.2 documentation and version update",
   "distribution": "Python source and bundled browser assets",
   "includes_operational_data": false
 }

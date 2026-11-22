@@ -1,4 +1,4 @@
-# TAIT Radio Map version 1.0
+# TAIT Radio Map version 1.2
 
 Extract the entire folder. Python and downloaded packages are required; this is
 not a standalone executable. The full operator guide is in docs.
@@ -46,3 +46,16 @@ Browser names, colours and preferences are per browser/origin.
 RELEASE.json identifies the source snapshot; SHA256SUMS.txt lists file hashes.
 VALIDATION.txt records checks and platform limits. THIRD_PARTY_NOTICES.txt and
 radio-map/dist/vendor contain dependency notices.
+
+## Version 1.2 controls
+
+The radio list shows response age and No GPS fix when reported. Last Position
+Received includes the position time and elapsed age when response information
+is unavailable or the latest reply has no fix. Poll requests one location in an
+active polling session. The pencil edits names and colours; the trashcan removes
+one radio until a newer report arrives. Panels → Restore saved data restores
+deleted radios. Panels → Waypoints manages groups, map-click or latitude/longitude
+or MGRS entry, saved name labels, and CSV import/export.
+
+See docs/TAIT_Radio_Map_User_Guide_v1.2.docx for the illustrated guide. PDF only
+defaults to off and remembers the browser's saved selection.

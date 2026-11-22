@@ -68,3 +68,12 @@ adds no KML point. Old data is not plotted as a current position.
 
 Protocol source: Tait TN-856-AN version 2.0, sections 6–9:
 https://manuals.plus/m/a1c43b0265ae124ba80e0813c7d015acb182ce45073a70f972c1a5c5ceb26016.pdf
+
+## Website polling in version 1.2
+
+Start Poll radios for location in Radio connection with the full target IDs.
+Poll beside a radio in the legend queues a one-off request through that session.
+A four-digit suffix is matched against the configured target list. Last heard
+is based on received events, including no-fix replies, while KML records fixes.
+The row shows No GPS fix when reported and Last Position Received with elapsed
+age when appropriate. A poll request alone does not establish a radio response.

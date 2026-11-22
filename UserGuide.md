@@ -1,5 +1,5 @@
 # TAIT Radio Map User Guide
-Version 1.0 | 31 October 2026
+Version 1.2 | 23 November 2026
 
 Install the application on the computer connected to the receiving radio, then use its browser viewer to collect and display positions. This guide covers initial setup, listening and polling, map operation, offline coverage, LAN sharing and recorded files.
 
@@ -13,7 +13,7 @@ The Python companion starts and supervises the selected logger, saves reports an
 5. Generate a field-radio report and confirm a fresh timestamp and plausible position.
 
 ## Guide contents
-Sections 1 and 2 cover Windows and Mac installation. Section 3 covers the common radio setup. Sections 4 and 5 cover Listen and Poll modes. Sections 6 and 7 cover positions, history and map controls. Section 8 covers offline tiles and PDFs. Sections 9 and 10 cover sharing, recordings and backups. Sections 11 and 12 cover troubleshooting. Section 13 covers optional CLI operation and section 14 describes release contents and acceptance checks.
+Sections 1 and 2 cover Windows and Mac installation. Section 3 covers the common radio setup. Sections 4 and 5 cover Listen and Poll modes. Sections 6 and 7 cover positions, history and map controls. Section 8 covers offline tiles and PDFs. Sections 9 and 10 cover sharing, recordings and backups. Sections 11 and 12 cover troubleshooting. Section 13 covers optional CLI operation and section 14 describes release contents and acceptance checks. Section 15 covers waypoint groups, coordinate entry and CSV files.
 
 ## Release scope
 This is a source distribution, not a standalone executable or installed background service. Python and downloadable dependencies are required. Windows is the verified development platform; macOS operation is intended but has not been tested on Mac hardware.
@@ -25,10 +25,10 @@ Polling follows Tait TN-856-AN version 2.0. Use the radio system's approved docu
 <!-- PAGE -->
 # 1 Install on Windows
 
-Extract all files to a writable folder, for example Documents\TaitRadioMap-1.0. Do not run inside the ZIP. Retain the folder structure, including radio-map and both top-level logger scripts.
+Extract all files to a writable folder, for example Documents\TaitRadioMap-1.2. Do not run inside the ZIP. Retain the folder structure, including radio-map and both top-level logger scripts.
 
 ## Install Python and dependencies
-Install a supported 64-bit Python 3 release from https://www.python.org/downloads/. Python 3.12 is the release verification interpreter. The source requires Python 3.10 or newer, but use a supported Python release for a new installation.
+Install a supported 64-bit Python 3 release from https://www.python.org/downloads/. The current validation interpreter is recorded in VALIDATION.txt. The source requires Python 3.10 or newer, but use a supported Python release for a new installation.
 
 Open PowerShell in the extracted folder. Check python --version. If unavailable, try py -3 --version and substitute py -3 for python in the first command below. Use an isolated environment:
 ~~~text
@@ -55,12 +55,12 @@ Allow incoming Python connections on the intended private network if LAN viewing
 <!-- PAGE -->
 # 2 Install on macOS
 
-Copy the complete extracted release to a writable folder, for example ~/Documents/TaitRadioMap-1.0. Keep the logger scripts beside radio-map. These portability instructions have not been validated on Mac radio hardware.
+Copy the complete extracted release to a writable folder, for example ~/Documents/TaitRadioMap-1.2. Keep the logger scripts beside radio-map. These portability instructions have not been validated on Mac radio hardware.
 
 ## Install and start
 Install a supported Python 3 release from https://www.python.org/downloads/. In Terminal, check python3 --version, then use the following commands, adjusting the folder path if needed:
 ~~~text
-cd ~/Documents/TaitRadioMap-1.0
+cd ~/Documents/TaitRadioMap-1.2
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --upgrade pip
 ./.venv/bin/python -m pip install -r requirements-all.txt
@@ -158,6 +158,11 @@ Only one radio is polled at a time. Initially all targets are due. The poller wa
 
 Valid unsolicited reports are also recorded. A matching no-fix/status reply can complete a request without adding a position. A report without an explicit matching identity may be saved while the poll waits until timeout. Old/no-fix reports are not plotted as current fixes.
 
+## Request one position now
+In the Radio positions list, select Poll beside the intended radio. An active Poll radios for location session and a configured full target ID are required. A four-digit AVL suffix is matched to the configured list. If the radio is missing from that list, stop the session, add its full ID and restart polling.
+
+The request waits for the active poll, channel-busy/PTT state and minimum spacing. Check the row's response-age indicator for a new reply, or open Radio connection → Live diagnostics for a timeout. Selecting Poll alone does not confirm a response.
+
 ## Check compatibility before changing timings
 Test one target first. Verify the protocol, target SDM identity and dispatcher return destination if requests time out. Website polling uses the script's default timings and return destination.
 
@@ -166,27 +171,32 @@ The CLI exposes return ID, response timeout, command timeout, key-up lead-in and
 <!-- PAGE -->
 # 6 Positions and track history
 
-The left legend shows radio identity, last-heard time and the chosen coordinates. Larger labelled dots show latest fixes. Small dots show earlier reports; coloured lines form tracks within recording sessions.
+The left legend shows each radio's identity, response age and coordinates. Large labelled dots show the latest known fixes. Smaller dots show earlier positions and coloured lines form session tracks.
+
+## Response age and saved position time
+The age beside a radio name follows received responses, including supported no-fix replies, using the companion event logs. Hover for the full timestamp. Live data refreshes every five seconds; age text refreshes every thirty seconds.
+
+No GPS fix appears when reported by the latest response. Last Position Received shows the saved position time and age in brackets when the latest reply has no fix or response information is unavailable. Hover for the full date. No-fix replies retain the previous position and add no track point. A radio without any saved fix shows No known GPS position.
+
+Latest-marker popups show separate Last heard and Position time values and response status. Earlier-dot popups show that report's time. KML-only snapshots use position times as a fallback.
 
 ## Find and inspect radios
-Search by ID or custom name. Click a legend name/ID to centre the map. Click a point for report time, identity, coordinates and available description. Hover an earlier dot for its timestamp. Use the right-hand zoom controls and the fit button to frame visible radios.
+Search by ID or custom name. Select a name to centre its known position. Right-hand zoom and fit controls frame the map. Radio checkboxes, Hide all and Show all control dots, labels and tracks.
 
-Checkboxes hide or show each radio's dots, labels and tracks. Hide all and Show all change the group together. Hidden radios remain in the dataset and can be shown again.
+## Radio row controls
+Poll requests a position through an active polling session with that target configured. See section 5. The pencil edits the radio name and colour.
+
+The trashcan removes that radio's displayed points, track and list entry through its latest report time. Deletion survives reloads; a newer position or status response can restore the radio. Panels → Restore saved data clears individual deletions and the overall history cutoff. Files and saved names and colours are preserved.
 
 ## Custom names and colours
-Click the pencil beside a radio. Enter its name, choose the points and track colour, then Save changes. The colour applies to the legend indicator, latest dot, report dots and tracks.
+Open the pencil, enter a name, choose a points and track colour and select Save changes. Clear name removes the name while retaining the colour. Default colour followed by Save changes restores the automatic colour. Cancel discards edits. Names accept up to 40 characters and are saved per browser.
 
-Clear name removes the saved name while preserving the saved colour. Default colour followed by Save changes restores the automatic colour. Cancel discards the draft. Names are limited to 40 characters. These preferences belong to the browser and do not modify the radio or KML.
+## History window and layout
+The slider offers Latest only; 5, 15 and 30 minutes; 1, 3, 6, 12 and 24 hours; 3 and 7 days; and All history. It runs backward from the newest displayed response or position. Latest markers remain visible outside that track window. Lines do not join separate sessions. A saved position does not establish the radio's current location.
 
-## History window
-The slider offers Latest only; 5, 15 and 30 minutes; 1, 3, 6, 12 and 24 hours; 3 and 7 days; and All history. The window runs backward from the newest report in the dataset, not the current computer time. The history panel shows that anchor. Latest markers remain visible even when older than the selected track window.
+Panels shows or hides Radio legend, Track history and Map status. Use Larger/Compact or the history panel's resize corner. Reset layout restores visibility and sizing. Expand Maps for map controls or Waypoints for reference points.
 
-Separate KML sessions are not connected by a line. Combining files removes identical ID/time/coordinate duplicates in the viewer. Stationary reports can overlap. A latest marker is the last recorded fix, not proof the radio is still there.
-
-## Panel layout
-Panels contains visibility controls for Radio legend, Track history and Map status. Use Larger/Compact and the history panel's resize corner to change its size. Reset layout restores default panel visibility and sizing. Expand Panels → Maps for map controls.
-
-Names, colours, visibility and the history setting persist per browser/origin. Other viewers may use different choices.
+Names, colours, visibility, deletions and history choices persist per browser and address. Other viewers can use different choices.
 
 <!-- PAGE -->
 # 7 Map appearance and grid references
@@ -217,6 +227,9 @@ Map name, style, coordinate format and grid selection are saved per browser/orig
 # 8 Offline tiles and PDF maps
 
 The local/LAN viewer and Leaflet assets are bundled. Offline coverage comes from retained tiles or an imported geospatial PDF. Keep the companion running; initial dependency installation still needs downloads unless supplied separately.
+
+## PDF only preference
+PDF only (no online tiles) defaults to off. When enabled it removes the online tile layer. The browser remembers the choice after reloads and companion restarts. Select a stored PDF and use Fit PDF map, or turn PDF only off to resume online tiles.
 
 ## Tile cache
 Panels → Maps → Map tile cache shows stored image bytes, tile count and the limit. Default is 250 MB. Set 10 to 10000 MB and choose Save cache limit. Oldest-used tiles are evicted when needed. SQLite metadata adds small disk overhead beyond image bytes.
@@ -282,12 +295,12 @@ The live viewer includes saved radio-*.kml sessions in runtime. Default startup 
 Open KML selects one or more browser-local snapshots rather than watching them. Each file is limited to 50 MB and needs timestamped Point placemarks. A line-only KML has no per-point timestamps. Use the footer refresh button to return to live local/LAN updates. KML can also be opened in Google Earth or another compatible application, whose refresh behaviour is separate.
 
 ## Clear and restore display history
-Panels → Clear history & radios hides points, tracks and radios through the newest dataset timestamp. Files are preserved, recording continues and newer reports reappear. Restore saved data removes that cutoff. This is browser-local and does not clear other viewers.
+Panels → Clear history & radios hides points, tracks and radios through the newest dataset timestamp. Files are preserved, recording continues and newer reports reappear. Restore saved data removes that cutoff and all individual radio deletions. This is browser-local and does not clear other viewers.
 
 ## Backups and upgrades
-Stop the radio and companion before backing up or moving runtime. Keep the complete runtime folder and original PDFs. Browser-stored names, colours and preferences are separate and are not included in that folder.
+Stop the radio and companion before backing up or moving runtime. Keep the complete runtime folder and original PDFs. Browser-stored names, colours, waypoint groups and preferences are separate from runtime. Export waypoint groups to CSV for backup or transfer.
 
-Extract upgrades into a fresh folder and recreate the environment. Copy stopped runtime data if wanted. Do not run old and new companions on the same serial or HTTP port. To stop displaying older sessions, archive their KML outside runtime while stopped and keep related captures/events together. Keep the original release ZIP and checksum for rollback.
+Extract upgrades into a fresh folder and recreate the environment. Copy stopped runtime data if wanted. Do not run old and new companions on the same serial or HTTP port. To stop displaying older sessions, archive their KML and matching event logs outside runtime while stopped and keep related raw captures with them. The companion uses event logs to recover response times and no-fix status. Keep the original release ZIP and checksum for rollback.
 
 <!-- PAGE -->
 # 11 Troubleshoot the radio connection
@@ -309,6 +322,9 @@ Confirm conventional CCDI/FFSK AVL polling support, actual SDM identities and th
 ## Shortened IDs
 Compressed AVL carries only four digits; 3000030 may appear as 0030. Full IDs and suffix-only IDs remain separate entries. Leading zeros matter. Custom names help identify known units but do not add verified digits to reports.
 
+## Hostname lookup fails on a Mac
+The companion continues to serve the local map if the computer hostname cannot be resolved. Use http://127.0.0.1:8765 locally. If no network address is printed, use the Mac's IPv4 address for LAN viewers.
+
 ## Pairing fails
 After restarting the companion, enter its new key. Use the radio PC's address, not another PC's loopback. Refresh old browser tabs after updates. Changing a key input invalidates the old pairing until Pair / re-pair companion succeeds.
 
@@ -324,7 +340,7 @@ Try Standard style and check internet connectivity. The cache contains only reta
 Unavailable uncached tiles return HTTP 503. Radio positions can still update because collection is independent of map downloads. Use a stored PDF for defined offline sheet coverage. Providers can have outages and zoom limits.
 
 ## Connection aborted tracebacks
-Version 1.0 handles expected browser disconnects, including Windows 10053, without printing a traceback or sending a second response. Browsers cancel requests on pan, zoom, navigation and reload. Restart the updated companion if an older process still prints them. Genuine application faults remain visible.
+The companion handles expected browser disconnects, including Windows 10053, without printing a traceback or sending a second response. Browsers cancel requests on pan, zoom, navigation and reload. Restart the updated companion if an older process still prints them. Genuine application faults remain visible.
 
 ## PDF import errors
 Install requirements-maps.txt in the companion environment and restart. Check file size, page and frame. Plain scans lack georeferencing; unsupported formats must be exported as unrotated ISO geospatial PDFs.
@@ -335,7 +351,7 @@ Invalid map viewport bounds now means an invalid, zero-sized or fully off-page f
 The maximum 4096-pixel edge limits deep zoom. Check page/frame, datum and known locations. Opacity helps compare with online mapping. Metadata consistency checks do not certify the source map's survey accuracy.
 
 ## Different settings on other PCs
-Names, colours, map name/style, coordinates, grids, visibility, history window and clear-history cutoff are browser-local. Storage is separated by origin, including localhost, 127.0.0.1 and a LAN IP. Shared recordings, PDF files and cache remain on the companion.
+Names, colours, map name/style, coordinates, grids, visibility, history window, individual deletions, waypoint groups and clear-history cutoff are browser-local. Storage is separated by origin, including localhost, 127.0.0.1 and a LAN IP. Shared recordings, PDF files and cache remain on the companion.
 
 ## LAN access fails
 Use the correct printed LAN address/port. Check that startup was not restricted to loopback, then check firewall rules, VPN routing and Wi-Fi client isolation. Read-only viewing needs no key; control requires pairing. There is no internet relay service.
@@ -374,12 +390,12 @@ Replace the reference date with the capture date for binary messages lacking mon
 <!-- PAGE -->
 # 14 Release contents and acceptance checks
 
-RELEASE.json records version, date and source revision. SHA256SUMS.txt lists checksums of packaged files; the separate archive checksum identifies the ZIP. No live captures, positions, cache database, operational PDFs, credentials, virtual environment or source-control metadata are included.
+RELEASE.json records the version, date and source baseline. SHA256SUMS.txt lists checksums of packaged files; the separate archive checksum identifies the ZIP. No live captures, positions, cache database, operational PDFs, credentials, virtual environment or source-control metadata are included.
 
 ## Package layout
 | Item | Purpose |
 | README_FIRST.md | Quick installation and startup |
-| VERSION and RELEASE.json | Version number and source revision |
+| VERSION and RELEASE.json | Version number and source baseline |
 | requirements-all.txt | Core and optional PDF dependency entry point |
 | start-windows.cmd and start-macos.command | Launch through the local environment |
 | tait_to_kml.py and tait_poll_to_kml.py | Standalone receiver and poller |
@@ -393,7 +409,7 @@ VALIDATION.txt records release test results, interpreter and dependency versions
 ## Acceptance check on the intended system
 1. Confirm a fresh, correctly placed report from a known radio in Listen mode.
 2. If polling is required, confirm a matched reply from one target before adding others.
-3. Confirm that the sender identity/suffix and timestamp are understood.
+3. Confirm sender identity, response age, no-fix status and saved position time. Test Poll and individual deletion on a known target.
 4. Open a second LAN viewer if sharing is required.
 5. Check required cached views or a stored PDF without internet, keeping the companion running.
 6. Stop cleanly and confirm KML, capture and event files exist.
@@ -403,24 +419,37 @@ Python downloads: https://www.python.org/downloads/
 Virtual environments: https://docs.python.org/3/library/venv.html
 Port listing: https://pyserial.readthedocs.io/en/latest/tools.html
 
-# 15 Waypoints and on demand radio polls
+<!-- PAGE -->
+# 15 Waypoint groups and CSV files
 
-## Create and view waypoint groups
+Use waypoints to compare known reference locations with received radio positions. Open Panels → Waypoints. Each browser keeps its own waypoint groups.
 
-Open Panels → Waypoints. Enter a group name and select Add group. Select a group to see its waypoints. Use Show group on map to control its purple markers. Select Locate beside a waypoint to centre the map on it.
+## Create and manage groups
+Enter a New group name and select Add group. Select the Group to work with. Show group on map controls that group's markers. Rename group changes its name. Delete group asks for confirmation and removes all waypoints in that group.
 
-Enter a waypoint name and choose Latitude / longitude for decimal degrees, or MGRS (WGS84) for a full grid reference such as 55H CU 32838 09126. MGRS places the marker at the centre of the grid square. To choose a location visually, select Pick on map and click the map. Select Add waypoint to save.
+Show waypoint names applies permanent labels to visible waypoint markers. It defaults to off and the browser remembers the setting. Click a waypoint marker to see its name, group and coordinates in a popup. Locate beside a list entry centres the map on that waypoint.
 
-Use Edit or Delete beside a waypoint to manage it. Groups are stored in the browser that created them. Export a CSV to share them or move them to another browser.
+## Add a waypoint
+1. Select the group and enter a Waypoint name.
+2. Choose Latitude / longitude for decimal degrees, including the sign. Southern latitude and western longitude use negative values.
+3. Alternatively choose MGRS (WGS84) and enter a full reference, for example 55H CU 32838 09126. Include the zone, latitude band, square letters and equal easting and northing digits. Spaces and lower-case letters are accepted. References copied from the map's MGRS display are accepted.
+4. To choose a point visually, select Pick on map and click the map. This fills latitude and longitude. Select Cancel pick or close the panel to leave map-pick mode.
+5. Select Add waypoint to save. Edit loads an existing waypoint into the form. Save changes applies edits and Cancel edit discards the draft.
 
-## Import and export waypoint CSV files
+MGRS entry uses the centre of the referenced grid square. Supported numerical references have 2, 4, 6, 8 or 10 digits in total. Use WGS84 and check the paper map's datum. The coordinate-display setting under Maps controls readouts independently of the entry format.
 
-Select Export CSV to download all waypoint groups. To import, select Import CSV and choose a file up to 2 MB. Use the headers group,name,latitude,longitude for decimal degrees or group,name,mgrs for full WGS84 MGRS references.
+## Export and import CSV
+Export CSV downloads all groups to waypoints.csv with group,name,latitude,longitude headers. It includes empty groups. Import CSV accepts files up to 2 MB and either those columns or group,name,mgrs. Import adds new groups or merges into an existing group with the same name. Exact name-and-coordinate duplicates within a group are skipped.
 
-Import adds new groups or merges rows into groups with the same name. A waypoint with the same name and coordinates in that group is skipped.
-
-## Request a fresh radio position
-
-In Radio connection, start a Poll radios for location session with the radio’s full ID in the poll list. In Radio positions, select Poll beside the radio. A four-digit AVL suffix is matched against the configured poll list.
-
-The companion queues the request behind an active poll and respects channel busy, PTT and minimum poll spacing. A queued request does not confirm a reply. Check Last heard for a new report or open Radio connection → Live diagnostics to see the poll and any timeout.
+A latitude and longitude example follows.
+~~~text
+group,name,latitude,longitude
+Checkpoints,Gate,-37.850000,145.100000
+Checkpoints,Hill,-37.860000,145.110000
+~~~
+An MGRS example follows.
+~~~text
+group,name,mgrs
+Checkpoints,Gate,55H CU 32838 09126
+~~~
+Quote CSV fields containing commas or quotes. Invalid rows reject the import before groups are changed. Exported names starting with spreadsheet formula characters are escaped. Browser storage belongs to its address and profile, so export before changing browser, computer or address. Imported groups are stored in that browser and can be shown independently of other viewers.

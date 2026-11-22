@@ -1,28 +1,33 @@
-TAIT Radio Map 1.0 release validation
-Release date: 31 October 2026
+TAIT Radio Map 1.2 release validation
+Release date: 23 November 2026
 Platform: Windows
-Python: 3.12.14
+Test interpreter: Python 3.14.7
 
-24 logger/poller Python tests: passed
-16 companion/PDF/cache Python tests: passed
-12 browser-logic Node tests: passed
-Total automated tests: 52 passed
+25 logger and poller tests passed.
+20 companion, response log, PDF and cache tests passed.
+15 browser logic tests passed.
+Total automated tests: 60 passed.
 
-Guide: 19 pages, 6 demonstration screenshots. Rendered through Microsoft Word
-2016 PDF export and inspected as page PNGs. The bundled LibreOffice renderer
-was unavailable on this Windows host; native Word provided the layout check.
+The Word guide has 22 pages and 9 current demonstration screenshots.
+It was rendered with Microsoft Word and the page images were visually reviewed.
+The bundled document renderer could not find LibreOffice on this Windows host.
 
-Serial tests simulate IO. No release acceptance test on Mac hardware or every
-TAIT configuration is claimed. The current physical radio session was not
-interrupted to package this release.
+Browser workflow checks during development covered waypoint entry, CSV import
+and export, saved label visibility, response/no-fix display, per-radio deletion,
+restore and reappearance on a newer response. Screenshots use demonstration
+identities and positions and a synthetic geospatial PDF.
 
-Dependency versions used for verification (not a lockfile):
+Serial tests use simulated input and output. RF compatibility depends on radio
+model and programming and still requires testing on the intended system.
+Automated release tests were run on Windows. Mac hardware acceptance was not
+performed for this documentation update.
+
+Dependency versions used for automated verification (not a lockfile):
 pyserial==3.5
-pypdf==6.10.0
+pypdf==6.21.4
 pypdfium2==5.14.0
-numpy==2.3.5
+numpy==2.5.4
 Pillow==12.3.0
 pyproj==3.8.0
 
-The application uses supported dependency ranges in its requirements files.
-Dependencies, Python, radio drivers and Node.js are not included in the ZIP.
+Python, external dependencies and radio drivers are installed separately.

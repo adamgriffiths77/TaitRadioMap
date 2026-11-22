@@ -1,4 +1,4 @@
-TAIT Radio Map 1.0 third party notices
+TAIT Radio Map 1.2 third party notices
 
 Leaflet 1.9.4 is bundled under its BSD 2-Clause license. See
 radio-map/dist/vendor/leaflet-license.txt and the preserved source header.

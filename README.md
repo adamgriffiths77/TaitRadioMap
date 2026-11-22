@@ -6,7 +6,7 @@ This program has been entirely written by AI to receive Tait radio location data
 - supports both online and offline use.  
     - OpenMaps is used for online mapping use and are cached for availability when operating in a disconnected state
     - Geocoded PDF's are also supported (such as government produced topographic maps) for entirely offline use
-    - supports both Lat/Long and MGRS co-ordinate display with 8,6,4 figure grid references.
+    - supports both Lat/Long and MGRS co-ordinate display with 6, 8 and 10 figure grid references.
     - configurable grid line display
     
 - connects to any Tait Radio that supports CCDI via a serial port
@@ -67,3 +67,16 @@ Browser names, colours and preferences are per browser/origin.
 RELEASE.json identifies the source snapshot; SHA256SUMS.txt lists file hashes.
 VALIDATION.txt records checks and platform limits. THIRD_PARTY_NOTICES.txt and
 radio-map/dist/vendor contain dependency notices.
+
+## Version 1.2 controls
+
+The radio list shows response age and No GPS fix when reported. Last Position
+Received includes the position time and elapsed age when response information
+is unavailable or the latest reply has no fix. Poll requests one location in an
+active polling session. The pencil edits names and colours; the trashcan removes
+one radio until a newer report arrives. Panels → Restore saved data restores
+deleted radios. Panels → Waypoints manages groups, map-click or latitude/longitude
+or MGRS entry, saved name labels, and CSV import/export.
+
+See docs/TAIT_Radio_Map_User_Guide_v1.2.docx for the illustrated guide. PDF only
+defaults to off and remembers the browser's saved selection.

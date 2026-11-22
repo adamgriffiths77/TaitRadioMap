@@ -60,7 +60,7 @@ class TileCache:
   with self.download_locks[hash(key)%len(self.download_locks)]:
    row,generation=self._lookup(key)
    if row and row[1]>time.time(): return row[0]
-   headers={'User-Agent':'TaitRadioMap/1.0 (+https://tait-radio-map-adam.docile-root-7865.chatgpt.site/)'}
+   headers={'User-Agent':'TaitRadioMap/1.2 (+https://tait-radio-map-adam.docile-root-7865.chatgpt.site/)'}
    if referer: headers['Referer']=referer
    if row and row[2]: headers['If-None-Match']=row[2]
    if row and row[3]: headers['If-Modified-Since']=row[3]
