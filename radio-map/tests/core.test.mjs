@@ -3,6 +3,20 @@ import assert from 'node:assert/strict';
 import {parseMgrs, parseWaypointCsv, waypointCsv} from '../dist/core.mjs';
 import {normalize, trailSegments, historyPoints, windowLabel, colorFor, afterClear, mapName, mapStyle, MAP_STYLES, coordinateText, customRadioName, radioName} from '../dist/core.mjs';
 const p = (id, minutes, session = 'one') => ({id, time:new Date(minutes * 60000).toISOString(), lat:-37.9, lon:145.3, session});
+test('last heard follows responses while positions and no-fix radios stay distinct', () => {
+  const reports = [{id:'0030',time:new Date(180000).toISOString(),status:'no_fix'},
+    {id:'0029',time:new Date(120000).toISOString(),status:'no_fix'}];
+  const radios = normalize([p('0030', 1)], reports);
+  const radio = radios.find(item => item.id === '0030');
+  assert.equal(radio.lastHeard,180000);
+  assert.equal(radio.latest.time,60000);
+  assert.equal(radio.points.length,1);
+  assert.equal(radio.responseStatus,'no_fix');
+  assert.equal(radios.find(item => item.id === '0029').latest,null);
+  const newer = normalize([p('0030', 1)], [...reports,{id:'0030',time:new Date(240000).toISOString(),status:'fix'}]);
+  assert.equal(newer.find(item => item.id === '0030').responseStatus,'fix');
+  assert.deepEqual(normalize([],afterClear(reports,180000)),[]);
+});
 test('waypoint MGRS accepts displayed references and rejects incomplete references', () => {
   const point = parseMgrs(coordinateText(-37.85, 145.1, 'mgrs5'));
   assert.ok(Math.abs(point.lat + 37.85) < 0.00002);

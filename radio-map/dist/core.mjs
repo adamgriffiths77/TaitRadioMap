@@ -38,7 +38,7 @@ export function colorFor(id) {
   for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return COLORS[hash % COLORS.length];
 }
-export function normalize(points) {
+export function normalize(points, reports = []) {
   const radios = new Map();
   const seen = new Set();
   for (const p of points) {
@@ -54,6 +54,21 @@ export function normalize(points) {
   for (const radio of radios.values()) {
     radio.points.sort((a, b) => a.time - b.time);
     radio.latest = radio.points.at(-1);
+    radio.lastHeard = radio.latest.time;
+  }
+  const latestReports = new Map();
+  for (const report of reports) {
+    const time = Date.parse(report.time), id = String(report.id || 'Unknown radio');
+    if (!Number.isFinite(time)) continue;
+    if (!latestReports.has(id) || time >= latestReports.get(id).time) {
+      latestReports.set(id, {...report, id, time});
+    }
+  }
+  for (const report of latestReports.values()) {
+    if (!radios.has(report.id)) radios.set(report.id, {id: report.id, color: colorFor(report.id), points: [], latest: null});
+    const radio = radios.get(report.id);
+    radio.lastHeard = report.time;
+    radio.responseStatus = report.status;
   }
   return [...radios.values()].sort((a, b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
 }

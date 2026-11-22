@@ -45,7 +45,7 @@ $('coordinate-format').onchange = event => {
 const local = location.protocol === 'http:';
 let radios = [], anchor = 0, layers = new Map(), mode = local ? 'live' : 'files';
 let imported = [], busy = false, fitted = false, lastSync = null, dataSignature = '';
-let lastPoints = [], clearedThrough = null;
+let lastPoints = [], lastReports = [], clearedThrough = null;
 try { const saved = localStorage.getItem('tait-cleared-through'); if (saved !== null && Number.isFinite(Number(saved))) clearedThrough = Number(saved); } catch {}
 let hidden;
 try { hidden = new Set(JSON.parse(localStorage.getItem('tait-hidden') || '[]')); } catch { hidden = new Set(); }
@@ -104,13 +104,17 @@ function popup(radio, point = radio.latest) {
   const node = document.createElement('div');
   node.append(text('div', displayName(radio), 'popup-title'));
   node.append(text('div', `Radio ID: ${radio.id}`, 'popup-time'));
-  node.append(text('div', `${point === radio.latest ? 'Last heard' : 'Report time'}: ${formatted(point.time)}`, 'popup-time'));
+  if (point === radio.latest) {
+    node.append(text('div', `Last heard: ${formatted(radio.lastHeard)}`, 'popup-time'));
+    if (responseText(radio)) node.append(text('div', responseText(radio), 'popup-time'));
+  }
+  node.append(text('div', `${point === radio.latest ? 'Position time' : 'Report time'}: ${formatted(point.time)}`, 'popup-time'));
   node.append(text('div', coordinateText(point.lat, point.lon, coordinateFormat), 'popup-time'));
   node.append(text('p', point.description || 'No additional report details', 'file-note'));
   return node;
 }
 function focusRadio(radio) {
-  if (!map) return;
+  if (!map || !radio.latest) return;
   if (hidden.has(radio.id)) { hidden.delete(radio.id); savePrefs(); render(); }
   map.setView([radio.latest.lat, radio.latest.lon], Math.max(16, map.getZoom()));
   const marker = layers.get(radio.id)?.marker;
@@ -126,10 +130,15 @@ function renderLegend() {
     check.checked = !hidden.has(radio.id); check.setAttribute('aria-label', `Show radio ${radio.id}`);
     check.onchange = () => { check.checked ? hidden.delete(radio.id) : hidden.add(radio.id); savePrefs(); render(); };
     const content = text('div', '', 'radio-content'), name = text('div', '', 'radio-name');
-    const label = text('button', displayName(radio)); label.title = `Centre map on radio ${radio.id}`; label.onclick = () => focusRadio(radio);
-    name.append(label, text('span', age(radio.latest.time), 'age'));
-    const heard = text('div', `Last heard ${timeFormat.format(new Date(radio.latest.time))}`, 'heard'); heard.title = formatted(radio.latest.time);
-    content.append(name, heard, text('div', coordinateText(radio.latest.lat, radio.latest.lon, coordinateFormat), 'coordinates'));
+    const label = text('button', displayName(radio)); label.title = radio.latest ? `Centre map on radio ${radio.id}` : 'No known GPS position'; label.disabled = !radio.latest; label.onclick = () => focusRadio(radio);
+    name.append(label, text('span', age(radio.lastHeard), 'age'));
+    const heard = text('div', `Last heard ${timeFormat.format(new Date(radio.lastHeard))}`, 'heard'); heard.title = formatted(radio.lastHeard);
+    content.append(name, heard);
+    if (responseText(radio)) content.append(text('div', responseText(radio), 'heard'));
+    if (radio.latest) {
+      content.append(text('div', `Position ${timeFormat.format(new Date(radio.latest.time))}`, 'heard'));
+      content.append(text('div', coordinateText(radio.latest.lat, radio.latest.lon, coordinateFormat), 'coordinates'));
+    } else content.append(text('div', 'No known GPS position', 'coordinates'));
     if (aliases.has(radio.id)) content.insertBefore(text('div', `ID ${radio.id}`, 'radio-id-detail'), heard);
     const edit = text('button', '✎', 'edit-radio-name'); edit.type = 'button';
     edit.title = `Set name or colour for radio ${radio.id}`; edit.setAttribute('aria-label', `Edit name and colour for radio ${radio.id}`);
@@ -154,6 +163,9 @@ function renderLegend() {
 }
 
 const pendingPolls = new Set();
+function responseText(radio) {
+  return {no_fix: 'No GPS fix', gps_unavailable: 'GPS not operational', gps_error: 'GPS format error', unsupported: 'No supported location in last response'}[radio.responseStatus] || '';
+}
 async function pollRadio(id, button) {
   const status = $('radio-poll-status');
   pendingPolls.add(id);
@@ -177,7 +189,7 @@ function renderMap() {
   const minutes = WINDOWS[historyIndex];
   let count = 0;
   radios.forEach((radio, index) => {
-    if (hidden.has(radio.id)) return;
+    if (hidden.has(radio.id) || !radio.latest) return;
     const segments = trailSegments(radio, minutes, anchor);
     const reports = historyPoints(radio, minutes, anchor);
     count += reports.length;
@@ -200,7 +212,7 @@ function renderMap() {
     marker.bindTooltip(tooltip, {permanent:true, direction:index % 2 ? 'left' : 'right', offset:[index % 2 ? -12 : 12, 0], className:'radio-label'});
     layers.set(radio.id, {group, marker});
   });
-  const visible = radios.filter(r => !hidden.has(r.id)).length;
+  const visible = radios.filter(r => !hidden.has(r.id) && r.latest).length;
   $('visible-summary').textContent = radios.length ? `${visible} of ${radios.length} radios visible` : 'No radios loaded';
   $('point-count').textContent = `${count.toLocaleString()} track points`;
   $('history-label').textContent = windowLabel(minutes);
@@ -214,19 +226,20 @@ function render() {
 }
 function fit() {
   if (!map) return;
-  const points = radios.filter(r => !hidden.has(r.id)).flatMap(r => {
+  const points = radios.filter(r => !hidden.has(r.id) && r.latest).flatMap(r => {
     const trails = trailSegments(r, WINDOWS[historyIndex], anchor).flat();
     return [...trails, r.latest].map(p => [p.lat, p.lon]);
   });
   if (points.length) map.fitBounds(points, {paddingTopLeft:[45,70], paddingBottomRight:[65,210], maxZoom:17});
 }
-function setData(points) {
+function setData(points, reports = []) {
   lastPoints = points;
-  const signature = JSON.stringify(points);
+  lastReports = reports;
+  const signature = JSON.stringify([points, reports]);
   if (signature === dataSignature) return;
   dataSignature = signature;
-  radios = normalize(afterClear(points, clearedThrough));
-  anchor = radios.length ? Math.max(...radios.map(r => r.latest.time)) : 0;
+  radios = normalize(afterClear(points, clearedThrough), afterClear(reports, clearedThrough));
+  anchor = radios.length ? Math.max(...radios.map(r => Math.max(r.latest?.time || 0, r.lastHeard))) : 0;
   render();
   $('clear-history').disabled = !radios.length;
   $('restore-history').disabled = clearedThrough === null;
@@ -246,7 +259,7 @@ async function loadLive() {
     } else payload = await api('/api/positions');
     if (mode !== 'live') return;
     if (!Array.isArray(payload.points)) throw new Error('Position source returned invalid data');
-    if (!payload.errors?.length || payload.points.length) setData(payload.points);
+    if (!payload.errors?.length || payload.points.length || payload.reports?.length) setData(payload.points, payload.reports || []);
     lastSync = Date.now();
     connection(payload.errors?.length ? 'Source needs attention' : 'Local · updating', !!payload.errors?.length);
     $('source-title').textContent = payload.sources?.map(s => s.name).join(' + ') || 'Local KML files';
@@ -287,12 +300,12 @@ $('clear-history').onclick = () => {
   if (!radios.length) return;
   clearedThrough = anchor;
   try { localStorage.setItem('tait-cleared-through', String(clearedThrough)); } catch {}
-  dataSignature = ''; fitted = false; setData(lastPoints);
+  dataSignature = ''; fitted = false; setData(lastPoints, lastReports);
 };
 $('restore-history').onclick = () => {
   clearedThrough = null;
   try { localStorage.removeItem('tait-cleared-through'); } catch {}
-  dataSignature = ''; fitted = false; setData(lastPoints);
+  dataSignature = ''; fitted = false; setData(lastPoints, lastReports);
 };
 $('refresh').onclick = () => { if (local || isPaired()) { mode = 'live'; loadLive(); } else if (imported.length) loadFiles(imported); else $('files').click(); };
 setInterval(() => { if (mode === 'live') loadLive(); }, 5000);

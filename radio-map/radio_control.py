@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import uuid
+from radio_reports import RadioReports
 
 ROOT = Path(__file__).resolve().parent
 
@@ -68,6 +69,7 @@ class RadioController:
         self.logs = deque(maxlen=150)
         self.started = None
         self.output = None
+        self.report_reader = RadioReports()
 
     def status(self):
         with self.lock:
@@ -78,6 +80,9 @@ class RadioController:
 
     def files(self):
         return sorted(self.directory.glob('radio-*.kml')) if self.directory.exists() else []
+
+    def reports(self):
+        return self.report_reader.read(self.directory.glob('radio-*-events.txt'))
 
     def start(self, settings):
         with self.lock:

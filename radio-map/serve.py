@@ -72,7 +72,8 @@ def collect_positions(files, optional_files=(), controller=None):
                 errors.append(f'{file.name}: {exc}')
         except (OSError, ValueError, ET.ParseError) as exc:
             errors.append(f'{file.name}: {exc}')
-    return {'points': points, 'sources': sources, 'errors': errors,
+    reports = controller.reports() if controller and hasattr(controller, 'reports') else []
+    return {'points': points, 'reports': reports, 'sources': sources, 'errors': errors,
             'updated': datetime.now(timezone.utc).isoformat()}
 
 
