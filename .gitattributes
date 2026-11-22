@@ -1,0 +1,2 @@
+# Preserve the bytes checked by the Leaflet script integrity hash.
+/radio-map/dist/leaflet.js -text

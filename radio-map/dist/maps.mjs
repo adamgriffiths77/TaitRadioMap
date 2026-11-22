@@ -127,6 +127,12 @@ function escapeAttribution(value) {
 export function setupWaypoints(map, formatCoordinates) {
   const storageKey = 'tait-waypoint-groups';
   const panel = $('waypoints');
+  const showNames = $('waypoint-show-names');
+  showNames.checked = saved('tait-waypoint-show-names') === 'true';
+  showNames.onchange = () => {
+    remember('tait-waypoint-show-names', showNames.checked);
+    draw();
+  };
   const groupSelect = $('waypoint-group');
   const form = $('waypoint-form');
   const name = $('waypoint-name');
@@ -194,8 +200,13 @@ export function setupWaypoints(map, formatCoordinates) {
         popup.append(title, document.createElement('br'),
           group.name, document.createElement('br'), formatCoordinates(point.lat, point.lon));
         const icon = L.divIcon({className: 'waypoint-marker', iconSize: [16, 16]});
-        L.marker([point.lat, point.lon], {icon, title: point.name})
+        const marker = L.marker([point.lat, point.lon], {icon, title: point.name})
           .bindPopup(popup).addTo(layer);
+        if (showNames.checked) {
+          const label = document.createElement('span');
+          label.textContent = point.name;
+          marker.bindTooltip(label, {permanent: true, direction: 'right', className: 'radio-label'});
+        }
       }
     }
     const list = $('waypoint-list');
